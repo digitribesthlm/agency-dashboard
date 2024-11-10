@@ -183,46 +183,86 @@ const CampaignsList = ({ campaigns, onSelect }) => (
 
 const AssetGroupsList = ({ assetGroups, onSelect }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {assetGroups.map((group) => (
-      <div 
-        key={group.assetGroupId}
-        onClick={() => onSelect(group)}
-        className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow cursor-pointer"
-      >
-        <div className="card-body">
-          <h2 className="card-title">{group.assetGroupName}</h2>
-          <div className="badge badge-lg gap-2 mt-2">
-            <span className={`badge ${
-              group.assetGroupStatus === 'ENABLED' 
-                ? 'badge-success' 
-                : 'badge-error'
-            }`}>
-              {group.assetGroupStatus}
-            </span>
-          </div>
-          <div className="stats stats-vertical shadow mt-4">
-            <div className="stat place-items-center">
-              <div className="stat-title">Headlines</div>
-              <div className="stat-value text-primary">{group.headlines.length}</div>
+    {assetGroups.map((group) => {
+      // Get the first available assets
+      const firstImage = group.images[0];
+      const firstHeadline = group.headlines[0]?.['Text Content'] || 'No headline';
+      const firstDescription = group.descriptions[0]?.['Text Content'] || 'No description';
+      const firstVideo = group.videos[0];
+
+      return (
+        <div 
+          key={group.assetGroupId}
+          onClick={() => onSelect(group)}
+          className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow cursor-pointer"
+        >
+          <div className="card-body p-6">
+            {/* Status Badge */}
+            <div className="absolute top-4 right-4 z-10">
+              <span className={`badge ${
+                group.assetGroupStatus === 'ENABLED' 
+                  ? 'badge-success' 
+                  : 'badge-error'
+              }`}>
+                {group.assetGroupStatus}
+              </span>
             </div>
-            <div className="stat place-items-center">
-              <div className="stat-title">Descriptions</div>
-              <div className="stat-value text-secondary">{group.descriptions.length}</div>
+
+            {/* Media Preview */}
+            <div className="relative aspect-video rounded-lg overflow-hidden bg-base-300 mb-4">
+              {firstVideo ? (
+                <iframe
+                  className="w-full h-full"
+                  src={`https://www.youtube.com/embed/${firstVideo['Video ID']}`}
+                  title="Ad Preview"
+                  allowFullScreen
+                />
+              ) : firstImage ? (
+                <img 
+                  src={firstImage['Image URL']} 
+                  alt="Ad Preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              )}
             </div>
-            <div className="stat place-items-center">
-              <div className="stat-title">Images</div>
-              <div className="stat-value text-accent">{group.images.length}</div>
+
+            {/* Ad Content */}
+            <div className="space-y-3">
+              <h2 className="text-xl font-bold line-clamp-2">{firstHeadline}</h2>
+              <p className="text-sm text-base-content/70 line-clamp-3">{firstDescription}</p>
             </div>
-            <div className="stat place-items-center">
-              <div className="stat-title">Videos</div>
-              <div className="stat-value text-info">
+
+            {/* Asset Counts */}
+            <div className="flex flex-wrap gap-2 mt-4 text-sm text-base-content/60">
+              <div className="flex items-center gap-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
+                </svg>
+                {group.headlines.length}
+              </div>
+              <div className="flex items-center gap-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+                {group.images.length}
+              </div>
+              <div className="flex items-center gap-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                </svg>
                 {group.videos?.length || 0}
               </div>
             </div>
           </div>
         </div>
-      </div>
-    ))}
+      );
+    })}
   </div>
 );
 
