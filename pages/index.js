@@ -31,7 +31,7 @@ export default function Home() {
       <div className="hero min-h-screen bg-base-200">
         <div className="hero-content text-center">
           <div className="max-w-md">
-            <h1 className="text-5xl font-bold">Welcome to Agency Dashboard!</h1>
+            <h1 className="text-5xl font-bold">Welcome to Agency Dashboard</h1>
             <p className="py-6">
               View and manage your Performance Max campaigns and assets.
             </p>
