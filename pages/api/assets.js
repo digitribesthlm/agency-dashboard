@@ -9,23 +9,33 @@ export default async function handler(req, res) {
     const { accountId } = req.query;
     const { db } = await connectToDatabase();
     
-    // Get assets from PMax_Assets collection
+    // Get assets and performance data
     const assets = await db.collection('PMax_Assets')
       .find({ 'Account ID': Number(accountId) })
       .toArray();
 
-    // Debug log for images
-    const images = assets.filter(asset => asset['Asset Type'] === 'IMAGE');
-    console.log('Image assets:', images.map(img => ({
-      url: img['Image URL'],
-      type: img['Asset Type']
-    })));
+    // Get performance data
+    const performance = await db.collection('PMax_Assets_Performance')
+      .find({ 'Account ID': Number(accountId) })
+      .toArray();
 
-    // Group everything by Campaign and Asset Group
+    // Create a map of performance data by Asset ID
+    const performanceMap = performance.reduce((acc, perf) => {
+      acc[perf['Asset ID']] = perf['Performance Label'];
+      return acc;
+    }, {});
+
+    // Group assets with performance data
     const groupedAssets = assets.reduce((acc, asset) => {
       const campaignId = asset['Campaign ID'];
       const assetGroupId = asset['Asset Group ID'];
       
+      // Add performance label to asset
+      const assetWithPerformance = {
+        ...asset,
+        'Performance Label': performanceMap[asset['Asset ID']] || 'UNKNOWN'
+      };
+
       // Initialize campaign if it doesn't exist
       if (!acc[campaignId]) {
         acc[campaignId] = {
@@ -53,36 +63,25 @@ export default async function handler(req, res) {
 
       const group = acc[campaignId].assetGroups[assetGroupId];
 
-      // Categorize asset based on Asset Type and Field Type
-      if (asset['Asset Type'] === 'TEXT') {
-        if (asset['Field Type'] === 'HEADLINE') {
-          group.headlines.push(asset);
-        } else if (asset['Field Type'] === 'DESCRIPTION') {
-          group.descriptions.push(asset);
-        } else if (asset['Text Content'] === 'Watch Video') {
-          group.callToActions.push(asset);
+      // Categorize asset
+      if (assetWithPerformance['Asset Type'] === 'TEXT') {
+        if (assetWithPerformance['Field Type'] === 'HEADLINE') {
+          group.headlines.push(assetWithPerformance);
+        } else if (assetWithPerformance['Field Type'] === 'DESCRIPTION') {
+          group.descriptions.push(assetWithPerformance);
+        } else if (assetWithPerformance['Text Content'] === 'Watch Video') {
+          group.callToActions.push(assetWithPerformance);
         }
-      } else if (asset['Asset Type'] === 'IMAGE' || asset['Field Type'] === 'MARKETING_IMAGE') {
-        // Include all image assets, even if Image URL is "View Image"
-        group.images.push({
-          ...asset,
-          // You might want to add a placeholder URL here
-          displayUrl: asset['Image URL'] === 'View Image' 
-            ? '/placeholder-image.png'  // Add a placeholder image path
-            : asset['Image URL']
-        });
-      } else if (asset['Asset Type'] === 'VIDEO' || asset['Video ID']) {
-        // Check if video already exists by either Video ID or Title
+      } else if (assetWithPerformance['Asset Type'] === 'IMAGE') {
+        group.images.push(assetWithPerformance);
+      } else if (assetWithPerformance['Asset Type'] === 'VIDEO' || assetWithPerformance['Video ID']) {
+        // Check if video already exists to prevent duplicates
         const videoExists = group.videos.some(v => 
-          (asset['Video ID'] && v['Video ID'] === asset['Video ID']) || 
-          (asset['Video Title'] && v['Video Title'] === asset['Video Title'])
+          v['Video ID'] === assetWithPerformance['Video ID'] || 
+          v['Video Title'] === assetWithPerformance['Video Title']
         );
-        
-        if (!videoExists) {
-          group.videos.push(asset);
-          console.log(`Added unique video: ${asset['Video Title']}`); // Debug log
-        } else {
-          console.log(`Skipped duplicate video: ${asset['Video Title']}`); // Debug log
+        if (!videoExists && (assetWithPerformance['Video ID'] || assetWithPerformance['Video Title'])) {
+          group.videos.push(assetWithPerformance);
         }
       }
 
@@ -92,38 +91,8 @@ export default async function handler(req, res) {
     // Convert to array format
     const formattedData = Object.values(groupedAssets).map(campaign => ({
       ...campaign,
-      assetGroups: Object.values(campaign.assetGroups).map(group => ({
-        ...group,
-        // Deduplicate videos based on Video ID
-        videos: Array.from(new Map(
-          group.videos.map(video => [video['Video ID'], video])
-        ).values())
-      }))
+      assetGroups: Object.values(campaign.assetGroups)
     }));
-
-    console.log('Final asset groups with images:', 
-      Object.values(groupedAssets).map(campaign => ({
-        campaignName: campaign.campaignName,
-        assetGroups: Object.values(campaign.assetGroups).map(group => ({
-          groupName: group.assetGroupName,
-          imageCount: group.images.length,
-          imageUrls: group.images.map(img => img['Image URL'])
-        }))
-      }))
-    );
-
-    console.log('Videos after deduplication:', 
-      formattedData.map(campaign => ({
-        campaignName: campaign.campaignName,
-        assetGroups: campaign.assetGroups.map(group => ({
-          groupName: group.assetGroupName,
-          videos: group.videos.map(v => ({
-            title: v['Video Title'],
-            id: v['Video ID']
-          }))
-        }))
-      }))
-    );
 
     return res.status(200).json({
       success: true,

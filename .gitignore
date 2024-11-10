@@ -52,3 +52,8 @@ next-env.d.ts
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Scripts with sensitive data
+scripts/create-user.js
+scripts/seed-data.js
+scripts/*-sensitive.js

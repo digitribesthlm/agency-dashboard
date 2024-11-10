@@ -3,6 +3,47 @@ import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import Layout from '../../components/Layout';
 
+// Add this helper function at the top of your file
+const getPerformanceIcon = (label) => {
+  switch(label?.toUpperCase()) {
+    case 'BEST':
+      return (
+        <div className="tooltip" data-tip="Best Performance">
+          <svg className="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+        </div>
+      );
+    case 'GOOD':
+      return (
+        <div className="tooltip" data-tip="Good Performance">
+          <svg className="w-5 h-5 text-info" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+        </div>
+      );
+    case 'LOW':
+      return (
+        <div className="tooltip" data-tip="Low Performance">
+          <svg className="w-5 h-5 text-warning" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+        </div>
+      );
+    case 'UNKNOWN':
+    case 'PENDING':
+      return (
+        <div className="tooltip" data-tip="Pending/Unknown">
+          <svg className="w-5 h-5 text-base-content/40" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          </svg>
+        </div>
+      );
+    default:
+      return null;
+  }
+};
+
 export default function ClientDashboard() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -195,7 +236,13 @@ const AssetGroupDetail = ({ assetGroup }) => (
           {assetGroup.headlines.map((headline, index) => (
             <div key={index} className="card bg-base-200">
               <div className="card-body p-4">
-                <p>{headline['Text Content']}</p>
+                <div className="flex justify-between items-start gap-2">
+                  <p className="flex-1">{headline['Text Content']}</p>
+                  {getPerformanceIcon(headline['Performance Label'])}
+                </div>
+                <div className="text-xs text-base-content/60 mt-2">
+                  Asset ID: {headline['Asset ID']}
+                </div>
               </div>
             </div>
           ))}
@@ -214,7 +261,13 @@ const AssetGroupDetail = ({ assetGroup }) => (
           {assetGroup.descriptions.map((desc, index) => (
             <div key={index} className="card bg-base-200">
               <div className="card-body p-4">
-                <p>{desc['Text Content']}</p>
+                <div className="flex justify-between items-start gap-2">
+                  <p className="flex-1">{desc['Text Content']}</p>
+                  {getPerformanceIcon(desc['Performance Label'])}
+                </div>
+                <div className="text-xs text-base-content/60 mt-2">
+                  Asset ID: {desc['Asset ID']}
+                </div>
               </div>
             </div>
           ))}
@@ -228,7 +281,7 @@ const AssetGroupDetail = ({ assetGroup }) => (
     {/* Images Section */}
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
-        <h2 className="card-title">Images ({assetGroup.images.length})</h2>
+        <h2 className="card-title">Images</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {assetGroup.images.map((image, index) => (
             <div key={index} className="card bg-base-200">
@@ -238,8 +291,6 @@ const AssetGroupDetail = ({ assetGroup }) => (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span className="mt-2 text-sm text-base-content/60">Marketing Image</span>
-                    <span className="text-xs text-base-content/40">ID: {image['Asset ID']}</span>
                   </div>
                 ) : (
                   <img 
@@ -248,22 +299,22 @@ const AssetGroupDetail = ({ assetGroup }) => (
                     className="w-full h-full object-cover"
                   />
                 )}
+                <div className="absolute top-2 right-2">
+                  {getPerformanceIcon(image['Performance Label'])}
+                </div>
               </figure>
               <div className="card-body p-3">
-                <div className="text-xs text-base-content/60">
-                  Field Type: {image['Field Type']}
-                </div>
-                {image['Performance Max Label'] && (
-                  <div className="badge badge-sm">
-                    {image['Performance Max Label']}
+                <div className="flex justify-between items-center">
+                  <div className="text-xs text-base-content/60">
+                    Asset ID: {image['Asset ID']}
                   </div>
-                )}
+                  <span className="text-xs badge badge-sm">
+                    {image['Performance Label'] || 'No Label'}
+                  </span>
+                </div>
               </div>
             </div>
           ))}
-          {assetGroup.images.length === 0 && (
-            <p className="text-gray-500 italic col-span-full">No images available</p>
-          )}
         </div>
       </div>
     </div>
@@ -277,18 +328,32 @@ const AssetGroupDetail = ({ assetGroup }) => (
             {assetGroup.videos.map((video, index) => (
               <div key={index} className="card bg-base-200">
                 <div className="card-body p-4">
-                  <h3 className="font-semibold">
-                    {video['Video Title'] || `Video ${index + 1}`}
-                  </h3>
-                  {video['Video ID'] && (
-                    <div className="aspect-video mt-2">
+                  <div className="relative">
+                    <div className="aspect-video rounded-lg overflow-hidden bg-base-300">
                       <iframe
-                        className="w-full h-full rounded-lg"
+                        className="w-full h-full"
                         src={`https://www.youtube.com/embed/${video['Video ID']}`}
+                        title={video['Video Title']}
                         allowFullScreen
                       />
                     </div>
-                  )}
+                    <div className="absolute top-2 right-2">
+                      {getPerformanceIcon(video['Performance Label'])}
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <h3 className="font-medium">
+                      {video['Video Title']}
+                    </h3>
+                    <div className="flex justify-between items-center mt-1">
+                      <div className="text-xs text-base-content/60">
+                        Asset ID: {video['Asset ID']}
+                      </div>
+                      <span className="text-xs badge badge-sm">
+                        {video['Performance Label'] || 'No Label'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
