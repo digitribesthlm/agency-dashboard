@@ -22,7 +22,9 @@ const Layout = ({ children }) => {
             </Link>
           </div>
           <div className="flex-none gap-4">
-            {status === 'authenticated' ? (
+            {status === 'loading' ? (
+              <span className="loading loading-spinner loading-md"></span>
+            ) : status === 'authenticated' ? (
               <>
                 {router.pathname !== '/client/dashboard' && (
                   <Link href="/client/dashboard" className="btn btn-primary">
