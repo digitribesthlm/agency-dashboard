@@ -154,26 +154,52 @@ const CampaignsList = ({ campaigns, onSelect }) => (
       <div 
         key={campaign.campaignId}
         onClick={() => onSelect(campaign)}
-        className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow cursor-pointer"
+        className="card bg-gradient-to-br from-base-100 to-base-200 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer"
       >
-        <div className="card-body">
-          <h2 className="card-title">{campaign.campaignName}</h2>
-          <div className="badge badge-lg gap-2 mt-2">
-            <span className={`badge ${
+        <div className="card-body p-6">
+          {/* Campaign Status Badge */}
+          <div className="flex justify-between items-start mb-4">
+            <span className={`badge badge-lg ${
               campaign.campaignStatus === 'ENABLED' 
                 ? 'badge-success' 
                 : 'badge-error'
             }`}>
               {campaign.campaignStatus}
             </span>
-          </div>
-          <div className="stats stats-vertical shadow mt-4">
-            <div className="stat place-items-center">
-              <div className="stat-title">Asset Groups</div>
-              <div className="stat-value text-primary">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-base-content/70">Asset Groups:</span>
+              <span className="badge badge-primary badge-lg">
                 {campaign.assetGroups.length}
-              </div>
+              </span>
             </div>
+          </div>
+
+          {/* Campaign Name */}
+          <h2 className="card-title text-2xl font-bold mb-2">
+            {campaign.campaignName}
+          </h2>
+
+          {/* Visual Asset Groups Indicator */}
+          <div className="mt-4 flex gap-1">
+            {[...Array(Math.min(campaign.assetGroups.length, 5))].map((_, i) => (
+              <div 
+                key={i} 
+                className="h-1.5 bg-primary flex-1 rounded-full"
+              />
+            ))}
+            {campaign.assetGroups.length > 5 && (
+              <div className="text-xs text-base-content/60 ml-2">
+                +{campaign.assetGroups.length - 5} more
+              </div>
+            )}
+          </div>
+
+          {/* Next Arrow with Label */}
+          <div className="flex items-center justify-end gap-2 mt-4 text-base-content/60">
+            <span className="text-sm">View Asset Groups</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </div>
         </div>
       </div>
