@@ -184,7 +184,6 @@ const CampaignsList = ({ campaigns, onSelect }) => (
 const AssetGroupsList = ({ assetGroups, onSelect }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {assetGroups.map((group) => {
-      // Get the first available assets
       const firstImage = group.images[0];
       const firstHeadline = group.headlines[0]?.['Text Content'] || 'No headline';
       const firstDescription = group.descriptions[0]?.['Text Content'] || 'No description';
@@ -193,10 +192,9 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => (
       return (
         <div 
           key={group.assetGroupId}
-          onClick={() => onSelect(group)}
-          className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow cursor-pointer"
+          className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow h-full flex flex-col"
         >
-          <div className="card-body p-6">
+          <div className="card-body p-6 flex flex-col flex-1">
             {/* Status Badge */}
             <div className="absolute top-4 right-4 z-10">
               <span className={`badge ${
@@ -233,32 +231,18 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => (
             </div>
 
             {/* Ad Content */}
-            <div className="space-y-3">
+            <div className="space-y-3 flex-1">
               <h2 className="text-xl font-bold line-clamp-2">{firstHeadline}</h2>
               <p className="text-sm text-base-content/70 line-clamp-3">{firstDescription}</p>
             </div>
 
-            {/* Asset Counts */}
-            <div className="flex flex-wrap gap-2 mt-4 text-sm text-base-content/60">
-              <div className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
-                </svg>
-                {group.headlines.length}
-              </div>
-              <div className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                </svg>
-                {group.images.length}
-              </div>
-              <div className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                </svg>
-                {group.videos?.length || 0}
-              </div>
-            </div>
+            {/* Asset Group Name Button */}
+            <button 
+              onClick={() => onSelect(group)}
+              className="btn btn-primary w-full mt-auto"
+            >
+              {group.assetGroupName}
+            </button>
           </div>
         </div>
       );
