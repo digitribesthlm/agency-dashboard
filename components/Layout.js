@@ -31,17 +31,17 @@ export default function Layout({ children }) {
                               : 'text-gray-600 hover:text-blue-600'
                           }`}
                         >
-                          Dashboard
+                          Admin Dashboard
                         </Link>
                         <Link
-                          href="/admin/clients"
+                          href="/client/dashboard"
                           className={`px-3 py-2 text-sm font-medium ${
-                            router.pathname === '/admin/clients'
+                            router.pathname === '/client/dashboard'
                               ? 'text-blue-600'
                               : 'text-gray-600 hover:text-blue-600'
                           }`}
                         >
-                          Clients
+                          Client Dashboard
                         </Link>
                       </>
                     ) : (
@@ -90,7 +90,7 @@ export default function Layout({ children }) {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow">
         {children}
       </main>
 
@@ -120,11 +120,11 @@ export default function Layout({ children }) {
             </div>
 
             <div className="text-center text-gray-600 text-sm pt-8 border-t border-gray-200 w-full">
-              © {new Date().getFullYear()} {brandName}. All rights reserved.
+              {new Date().getFullYear()} {brandName}. All rights reserved.
             </div>
           </div>
         </div>
       </footer>
     </div>
   );
-} 
+}
