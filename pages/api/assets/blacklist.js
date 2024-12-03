@@ -8,14 +8,33 @@ export default async function handler(req, res) {
   try {
     const { db } = await connectToDatabase();
     
-    // Just get all blocked assets
+    // Get all active blocked assets and ensure numeric fields
     const blacklist = await db.collection('PMAX_Assets_black_list')
-      .find({ status: 'ACTIVE' })
+      .find({ 
+        status: 'ACTIVE',
+      })
+      .project({
+        assetId: 1,
+        accountId: 1,
+        campaignId: 1,
+        assetGroupId: 1,
+        block_level: 1,
+        status: 1
+      })
       .toArray();
 
-    console.log('Blocked assets:', blacklist);
+    // Convert IDs to numbers
+    const formattedBlacklist = blacklist.map(item => ({
+      ...item,
+      assetId: Number(item.assetId),
+      accountId: Number(item.accountId),
+      campaignId: Number(item.campaignId),
+      assetGroupId: Number(item.assetGroupId)
+    }));
+
+    console.log('Sending blacklist:', formattedBlacklist);
     
-    res.status(200).json(blacklist);
+    res.status(200).json(formattedBlacklist);
   } catch (error) {
     console.error('Error fetching blacklist:', error);
     res.status(500).json({ message: 'Error fetching blacklist' });

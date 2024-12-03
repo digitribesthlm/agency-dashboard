@@ -216,6 +216,7 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
         const response = await fetch('/api/assets/blacklist');
         if (response.ok) {
           const data = await response.json();
+          console.log('Fetched blacklist:', data);
           setBlacklistedAssets(data);
         }
       } catch (error) {
@@ -226,18 +227,32 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
   }, []);
 
   const isAssetBlocked = (asset) => {
+    // Early return if no blacklist
+    if (!Array.isArray(blacklistedAssets) || blacklistedAssets.length === 0) {
+      return false;
+    }
+
+    // Log the asset being checked
+    console.log('Checking asset:', asset['Asset ID'], 'Account:', asset['Account ID']);
+
     return blacklistedAssets.some(blockedAsset => {
+      // Only check account level for now to debug
       if (blockedAsset.block_level === 'account') {
-        return blockedAsset.accountId === asset['Account ID'].toString();
-      } else if (blockedAsset.block_level === 'campaign') {
-        return blockedAsset.campaignId === asset['Campaign ID'].toString();
-      } else if (blockedAsset.block_level === 'assetgroup') {
-        return blockedAsset.assetGroupId === asset['Asset Group ID'].toString();
+        const matches = blockedAsset.accountId == asset['Account ID'];
+        console.log(
+          'Comparing account IDs:', 
+          blockedAsset.accountId, 
+          asset['Account ID'],
+          'Matches:', matches
+        );
+        return matches;
       }
-      return blockedAsset.assetId === asset['Asset ID'].toString();
+      return false;
     });
   };
 
+  // Log the filtered groups
+  console.log('Original groups:', assetGroups);
   const filteredAssetGroups = assetGroups.map(group => ({
     ...group,
     headlines: group.headlines?.filter(headline => !isAssetBlocked(headline)) || [],
@@ -245,6 +260,7 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
     images: group.images?.filter(image => !isAssetBlocked(image)) || [],
     videos: group.videos?.filter(video => !isAssetBlocked(video)) || []
   }));
+  console.log('Filtered groups:', filteredAssetGroups);
 
   const assetGroupVideos = filteredAssetGroups.map(group => group.videos || []);
   const videoCounts = assetGroupVideos.map(videos => videos.length);
@@ -351,15 +367,24 @@ const AssetGroupDetail = ({ assetGroup }) => {
   }, []);
 
   const isAssetBlocked = (asset) => {
+    if (!Array.isArray(blacklistedAssets) || blacklistedAssets.length === 0) {
+      return false;
+    }
+
     return blacklistedAssets.some(blockedAsset => {
+      const assetAccountId = Number(asset['Account ID']);
+      const assetCampaignId = Number(asset['Campaign ID']);
+      const assetGroupId = Number(asset['Asset Group ID']);
+      const assetId = Number(asset['Asset ID']);
+
       if (blockedAsset.block_level === 'account') {
-        return blockedAsset.accountId === asset['Account ID'].toString();
+        return blockedAsset.accountId === assetAccountId;
       } else if (blockedAsset.block_level === 'campaign') {
-        return blockedAsset.campaignId === asset['Campaign ID'].toString();
+        return blockedAsset.campaignId === assetCampaignId;
       } else if (blockedAsset.block_level === 'assetgroup') {
-        return blockedAsset.assetGroupId === asset['Asset Group ID'].toString();
+        return blockedAsset.assetGroupId === assetGroupId;
       }
-      return blockedAsset.assetId === asset['Asset ID'].toString();
+      return blockedAsset.assetId === assetId;
     });
   };
 
