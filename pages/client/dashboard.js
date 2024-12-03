@@ -207,15 +207,43 @@ const CampaignsList = ({ campaigns, onSelect }) => (
   </div>
 );
 
-const AssetGroupsList = ({ assetGroups, onSelect }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {assetGroups.map((group) => {
-      const firstImage = group.images[0];
-      const firstHeadline = group.headlines[0]?.['Text Content'] || 'No headline';
-      const firstDescription = group.descriptions[0]?.['Text Content'] || 'No description';
-      const firstVideo = group.videos[0];
+const AssetGroupsList = ({ assetGroups, onSelect }) => {
+  const [blacklistedAssets, setBlacklistedAssets] = useState([]);
 
-      return (
+  useEffect(() => {
+    const fetchBlacklist = async () => {
+      try {
+        const response = await fetch('/api/assets/blacklist');
+        if (response.ok) {
+          const data = await response.json();
+          setBlacklistedAssets(data);
+        }
+      } catch (error) {
+        console.error('Error fetching blacklist:', error);
+      }
+    };
+    fetchBlacklist();
+  }, []);
+
+  const isAssetBlocked = (asset) => {
+    return blacklistedAssets.some(blockedAsset => {
+      if (blockedAsset.block_level === 'account') {
+        return blockedAsset.accountId === asset['Account ID'].toString();
+      } else if (blockedAsset.block_level === 'campaign') {
+        return blockedAsset.campaignId === asset['Campaign ID'].toString();
+      } else if (blockedAsset.block_level === 'assetgroup') {
+        return blockedAsset.assetGroupId === asset['Asset Group ID'].toString();
+      }
+      return blockedAsset.assetId === asset['Asset ID'].toString();
+    });
+  };
+
+  const assetGroupVideos = assetGroups.map(group => group.videos?.filter(video => !isAssetBlocked(video)) || []);
+  const videoCounts = assetGroupVideos.map(videos => videos.length);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {assetGroups.map((group, index) => (
         <div 
           key={group.assetGroupId}
           className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow h-full flex flex-col"
@@ -234,54 +262,42 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => (
 
             {/* Media Preview */}
             <div className="relative aspect-video rounded-lg overflow-hidden bg-base-300 mb-4">
-              {firstVideo ? (
+              {assetGroupVideos[index] && assetGroupVideos[index].length > 0 ? (
                 <iframe
                   className="w-full h-full"
-                  src={`https://www.youtube.com/embed/${firstVideo['Video ID']}`}
+                  src={`https://www.youtube.com/embed/${assetGroupVideos[index][0]['Video ID']}`}
                   title="Ad Preview"
                   allowFullScreen
                 />
-              ) : firstImage ? (
+              ) : group.images && group.images.length > 0 ? (
                 <img 
-                  src={firstImage['Image URL']} 
+                  src={group.images[0]['Image URL']} 
                   alt="Ad Preview"
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                <div className="w-full h-full flex items-center justify-center text-base-content/30">
+                  No preview available
                 </div>
               )}
             </div>
 
             {/* Ad Content */}
             <div className="space-y-3 flex-1">
-              <h2 className="text-xl font-bold line-clamp-2">{firstHeadline}</h2>
-              <p className="text-sm text-base-content/70 line-clamp-3">{firstDescription}</p>
+              <h2 className="text-xl font-bold line-clamp-2">{group.headlines[0]?.['Text Content'] || 'No headline'}</h2>
+              <p className="text-sm text-base-content/70 line-clamp-3">{group.descriptions[0]?.['Text Content'] || 'No description'}</p>
             </div>
 
             {/* Asset Counts */}
-            <div className="flex flex-wrap gap-2 mt-4 text-sm text-base-content/60">
-              <div className="flex items-center gap-1 tooltip" data-tip="Headlines">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
-                </svg>
-                {group.headlines.length}
-              </div>
-              <div className="flex items-center gap-1 tooltip" data-tip="Images">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                </svg>
-                {group.images.length}
-              </div>
-              <div className="flex items-center gap-1 tooltip" data-tip="Videos">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                </svg>
-                {group.videos?.length || 0}
-              </div>
+            <div className="flex items-center gap-2 mt-4 text-sm text-base-content/60">
+              <span>—</span>
+              <span>{group.headlines.length}</span>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+              </svg>
+              <span>{group.images.length}</span>
+              <span>•</span>
+              <span>{videoCounts[index]}</span>
             </div>
 
             {/* Asset Group Name Button */}
@@ -293,10 +309,10 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => (
             </button>
           </div>
         </div>
-      );
-    })}
-  </div>
-);
+      ))}
+    </div>
+  );
+};
 
 const AssetGroupDetail = ({ assetGroup }) => {
   const [blacklistedAssets, setBlacklistedAssets] = useState([]);
@@ -340,13 +356,54 @@ const AssetGroupDetail = ({ assetGroup }) => {
   const filteredHeadlines = assetGroup?.headlines?.filter(headline => !isAssetBlocked(headline)) || [];
   const filteredDescriptions = assetGroup?.descriptions?.filter(desc => !isAssetBlocked(desc)) || [];
   const filteredImages = assetGroup?.images?.filter(image => !isAssetBlocked(image)) || [];
-  const filteredVideos = assetGroup?.videos?.filter(video => !isAssetBlocked(video)) || [];
+
+  // Filter videos against blacklist
+  const filteredVideos = assetGroup?.videos?.filter(video => {
+    const isBlocked = blacklistedAssets.some(blockedAsset => {
+      if (blockedAsset.block_level === 'account') {
+        return blockedAsset.accountId === video['Account ID'].toString();
+      } else if (blockedAsset.block_level === 'campaign') {
+        return blockedAsset.campaignId === video['Campaign ID'].toString();
+      } else if (blockedAsset.block_level === 'assetgroup') {
+        return blockedAsset.assetGroupId === video['Asset Group ID'].toString();
+      }
+      return blockedAsset.assetId === video['Asset ID'].toString();
+    });
+    return !isBlocked;
+  }) || [];
 
   console.log('Filtered assets:', {
     headlines: filteredHeadlines.length,
     descriptions: filteredDescriptions.length,
     images: filteredImages.length,
     videos: filteredVideos.length
+  });
+
+  // Keep the grid layout but only show non-blocked videos
+  const videoGrid = Array(4).fill(null).map((_, index) => {
+    const video = filteredVideos[index];
+    return (
+      <div key={index} className="aspect-video bg-base-200 rounded-lg overflow-hidden">
+        {video ? (
+          <div className="relative w-full h-full">
+            <iframe
+              className="w-full h-full"
+              src={`https://www.youtube.com/embed/${video['Video ID']}`}
+              title="Ad Preview"
+              allowFullScreen
+            />
+            <div className="absolute top-2 right-2">
+              {getPerformanceIcon(video['Performance Label'])}
+            </div>
+          </div>
+        ) : (
+          // Empty placeholder to maintain grid layout
+          <div className="w-full h-full flex items-center justify-center text-base-content/30">
+            No video
+          </div>
+        )}
+      </div>
+    );
   });
 
   return (
@@ -448,38 +505,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
           <div className="card-body">
             <h2 className="card-title">Videos</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredVideos.map((video, index) => (
-                <div key={index} className="card bg-base-200">
-                  <div className="card-body p-4">
-                    <div className="relative">
-                      <div className="aspect-video rounded-lg overflow-hidden bg-base-300">
-                        <iframe
-                          className="w-full h-full"
-                          src={`https://www.youtube.com/embed/${video['Video ID']}`}
-                          title={video['Video Title']}
-                          allowFullScreen
-                        />
-                      </div>
-                      <div className="absolute top-2 right-2">
-                        {getPerformanceIcon(video['Performance Label'])}
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <h3 className="font-medium">
-                        {video['Video Title']}
-                      </h3>
-                      <div className="flex justify-between items-center mt-1">
-                        <div className="text-xs text-base-content/60">
-                          Asset ID: {video['Asset ID']}
-                        </div>
-                        <span className="text-xs badge badge-sm">
-                          {video['Performance Label'] || 'No Label'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {videoGrid}
             </div>
           </div>
         </div>
