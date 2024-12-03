@@ -156,72 +156,15 @@ export default function ClientDashboard() {
         {/* Main Content */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <button
-            className="btn btn-primary"
-            onClick={() => setShowVideoGallery(!showVideoGallery)}
-          >
-            {showVideoGallery ? 'Hide Video Gallery' : 'Show Video Gallery'}
-          </button>
-        </div>
-
-        {showVideoGallery && (
-          <div className="bg-base-200 p-4 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">Video Gallery</h2>
-            {videos.length === 0 ? (
-              <div className="text-center py-8">
-                <p>No videos found</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {videos.map((video) => (
-                  <div key={video['Asset ID']} className="card bg-base-100 shadow-xl">
-                    <figure className="relative pt-[56.25%]">
-                      {video.video_id ? (
-                        <iframe
-                          src={`https://www.youtube.com/embed/${video.video_id}`}
-                          className="absolute top-0 left-0 w-full h-full"
-                          title={video['Video Title'] || `Video ${video['Asset ID']}`}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      ) : (
-                        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-base-300">
-                          <p>Video not available</p>
-                        </div>
-                      )}
-                    </figure>
-                    <div className="card-body p-4">
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm">ID: {video['Asset ID']}</span>
-                            {getPerformanceIcon(video['Performance Label'])}
-                          </div>
-                          <button 
-                            className="btn btn-sm btn-ghost"
-                            onClick={() => {
-                              console.log('Block video:', video);
-                            }}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                        </div>
-                        {video['Video Title'] && (
-                          <p className="text-sm truncate" title={video['Video Title']}>
-                            {video['Video Title']}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="flex gap-2">
+            <button 
+              className="btn btn-primary"
+              onClick={() => router.push('/admin/video')}
+            >
+              View Videos
+            </button>
           </div>
-        )}
+        </div>
 
         {!selectedCampaign ? (
           <CampaignsList 
@@ -650,6 +593,16 @@ const AssetGroupDetail = ({ assetGroup }) => {
                       className="w-full h-full object-cover"
                     />
                   )}
+                </figure>
+                <div className="card-body p-3">
+                  <div className="flex justify-between items-center">
+                    <div className="text-xs text-base-content/60">
+                      Asset ID: {image['Asset ID']}
+                    </div>
+                    <span className="text-xs badge badge-sm">
+                      {image['Performance Label'] || 'No Label'}
+                    </span>
+                  </div>
                   <div className="absolute top-2 right-2">
                     {getPerformanceIcon(image['Performance Label'])}
                     {session?.user?.role === 'admin' && (
@@ -675,16 +628,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
                         </button>
                       </div>
                     )}
-                  </div>
-                </figure>
-                <div className="card-body p-3">
-                  <div className="flex justify-between items-center">
-                    <div className="text-xs text-base-content/60">
-                      Asset ID: {image['Asset ID']}
-                    </div>
-                    <span className="text-xs badge badge-sm">
-                      {image['Performance Label'] || 'No Label'}
-                    </span>
                   </div>
                 </div>
               </div>
