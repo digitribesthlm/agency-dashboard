@@ -377,37 +377,26 @@ const AssetGroupDetail = ({ assetGroup }) => {
     videos: filteredVideos.length
   });
 
-  // Keep the grid layout but only show non-blocked videos
-  const videoGrid = Array(4).fill(null).map((_, index) => {
-    const video = filteredVideos[index];
+  const renderVideoThumbnail = (video, index) => {
+    if (!video) return null;
+
     return (
-      <div key={index} className="aspect-video bg-base-200 rounded-lg overflow-hidden">
-        {video ? (
-          <div className="flex flex-col h-full">
-            <iframe
-              className="w-full h-full"
-              src={`https://www.youtube.com/embed/${video['Video ID']}`}
-              title="Ad Preview"
-              allowFullScreen
-            />
-            <div className="flex justify-between items-center mt-2">
-              <div className="text-xs text-base-content/60">
-                Asset ID: {video['Asset ID']}
-              </div>
-              <div className="absolute top-2 right-2">
-                {getPerformanceIcon(video['Performance Label'])}
-              </div>
-            </div>
-          </div>
-        ) : (
-          // Empty placeholder to maintain grid layout
-          <div className="w-full h-full flex items-center justify-center text-base-content/30">
-            No video
-          </div>
-        )}
+      <div key={index} className="relative">
+        <div className="aspect-video bg-base-200 rounded-lg overflow-hidden">
+          <iframe
+            className="w-full h-full"
+            src={`https://www.youtube.com/embed/${video['Video ID']}`}
+            title="Ad Preview"
+            allowFullScreen
+          />
+        </div>
+        <div className="text-xs text-base-content/60 mt-2 flex items-center justify-between">
+          <span>Asset ID: {video['Asset ID']}</span>
+          <span>{video['Performance Label'] || 'UNKNOWN'}</span>
+        </div>
       </div>
     );
-  });
+  };
 
   return (
     <div className="space-y-8">
@@ -508,7 +497,9 @@ const AssetGroupDetail = ({ assetGroup }) => {
           <div className="card-body">
             <h2 className="card-title">Videos</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {videoGrid}
+              {filteredVideos.map((video, index) => (
+                renderVideoThumbnail(video, index)
+              ))}
             </div>
           </div>
         </div>
