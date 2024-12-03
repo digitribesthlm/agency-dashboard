@@ -238,12 +238,20 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
     });
   };
 
-  const assetGroupVideos = assetGroups.map(group => group.videos?.filter(video => !isAssetBlocked(video)) || []);
+  const filteredAssetGroups = assetGroups.map(group => ({
+    ...group,
+    headlines: group.headlines?.filter(headline => !isAssetBlocked(headline)) || [],
+    descriptions: group.descriptions?.filter(desc => !isAssetBlocked(desc)) || [],
+    images: group.images?.filter(image => !isAssetBlocked(image)) || [],
+    videos: group.videos?.filter(video => !isAssetBlocked(video)) || []
+  }));
+
+  const assetGroupVideos = filteredAssetGroups.map(group => group.videos || []);
   const videoCounts = assetGroupVideos.map(videos => videos.length);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {assetGroups.map((group, index) => (
+      {filteredAssetGroups.map((group, index) => (
         <div 
           key={group.assetGroupId}
           className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow h-full flex flex-col"

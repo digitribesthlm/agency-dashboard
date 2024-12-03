@@ -453,9 +453,8 @@ const AssetGroupDetail = ({ assetGroup }) => {
                   </div>
                   <div className="text-xs text-base-content/60 mt-2 flex items-center gap-2">
                     Asset ID: {headline['Asset ID']}
-                    {console.log('Session:', session)}
-                    {session?.user?.role === 'admin' ? (
-                      <div className="flex gap-2">
+                    {session?.user?.role === 'admin' && (
+                      <div className="flex items-center gap-2">
                         <button 
                           className="btn btn-ghost btn-xs p-0" 
                           onClick={() => {
@@ -476,7 +475,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                           </svg>
                         </button>
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </div>
@@ -503,7 +502,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                   <div className="text-xs text-base-content/60 mt-2 flex items-center gap-2">
                     Asset ID: {desc['Asset ID']}
                     {session?.user?.role === 'admin' && (
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
                         <button 
                           className="btn btn-ghost btn-xs p-0" 
                           onClick={() => {
