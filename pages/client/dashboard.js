@@ -351,14 +351,16 @@ const AssetGroupDetail = ({ assetGroup }) => {
   }, []);
 
   const isAssetBlocked = (asset) => {
-    const assetId = String(asset['Asset ID']);
-    const blocked = blacklistedAssets.some(blockedAsset => 
-      String(blockedAsset.assetId) === assetId
-    );
-    if (blocked) {
-      console.log('Asset blocked:', assetId);
-    }
-    return blocked;
+    return blacklistedAssets.some(blockedAsset => {
+      if (blockedAsset.block_level === 'account') {
+        return blockedAsset.accountId === asset['Account ID'].toString();
+      } else if (blockedAsset.block_level === 'campaign') {
+        return blockedAsset.campaignId === asset['Campaign ID'].toString();
+      } else if (blockedAsset.block_level === 'assetgroup') {
+        return blockedAsset.assetGroupId === asset['Asset Group ID'].toString();
+      }
+      return blockedAsset.assetId === asset['Asset ID'].toString();
+    });
   };
 
   const filteredHeadlines = assetGroup?.headlines?.filter(headline => !isAssetBlocked(headline)) || [];
@@ -366,19 +368,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
   const filteredImages = assetGroup?.images?.filter(image => !isAssetBlocked(image)) || [];
 
   // Filter videos against blacklist
-  const filteredVideos = assetGroup?.videos?.filter(video => {
-    const isBlocked = blacklistedAssets.some(blockedAsset => {
-      if (blockedAsset.block_level === 'account') {
-        return blockedAsset.accountId === video['Account ID'].toString();
-      } else if (blockedAsset.block_level === 'campaign') {
-        return blockedAsset.campaignId === video['Campaign ID'].toString();
-      } else if (blockedAsset.block_level === 'assetgroup') {
-        return blockedAsset.assetGroupId === video['Asset Group ID'].toString();
-      }
-      return blockedAsset.assetId === video['Asset ID'].toString();
-    });
-    return !isBlocked;
-  }) || [];
+  const filteredVideos = assetGroup?.videos?.filter(video => !isAssetBlocked(video)) || [];
 
   console.log('Filtered assets:', {
     headlines: filteredHeadlines.length,
@@ -393,15 +383,20 @@ const AssetGroupDetail = ({ assetGroup }) => {
     return (
       <div key={index} className="aspect-video bg-base-200 rounded-lg overflow-hidden">
         {video ? (
-          <div className="relative w-full h-full">
+          <div className="flex flex-col h-full">
             <iframe
               className="w-full h-full"
               src={`https://www.youtube.com/embed/${video['Video ID']}`}
               title="Ad Preview"
               allowFullScreen
             />
-            <div className="absolute top-2 right-2">
-              {getPerformanceIcon(video['Performance Label'])}
+            <div className="flex justify-between items-center mt-2">
+              <div className="text-xs text-base-content/60">
+                Asset ID: {video['Asset ID']}
+              </div>
+              <div className="absolute top-2 right-2">
+                {getPerformanceIcon(video['Performance Label'])}
+              </div>
             </div>
           </div>
         ) : (
@@ -553,4 +548,4 @@ const AssetGroupDetail = ({ assetGroup }) => {
       )}
     </div>
   );
-}; 
+};
