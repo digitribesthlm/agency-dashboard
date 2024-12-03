@@ -208,59 +208,13 @@ const CampaignsList = ({ campaigns, onSelect }) => (
 );
 
 const AssetGroupsList = ({ assetGroups, onSelect }) => {
-  const [blacklistedAssets, setBlacklistedAssets] = useState([]);
-
-  useEffect(() => {
-    const fetchBlacklist = async () => {
-      try {
-        const response = await fetch('/api/assets/blacklist');
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Fetched blacklist:', data);
-          setBlacklistedAssets(data);
-        }
-      } catch (error) {
-        console.error('Error fetching blacklist:', error);
-      }
-    };
-    fetchBlacklist();
-  }, []);
-
-  const isAssetBlocked = (asset) => {
-    // Early return if no blacklist
-    if (!Array.isArray(blacklistedAssets) || blacklistedAssets.length === 0) {
-      return false;
-    }
-
-    // Log the asset being checked
-    console.log('Checking asset:', asset['Asset ID'], 'Account:', asset['Account ID']);
-
-    return blacklistedAssets.some(blockedAsset => {
-      // Only check account level for now to debug
-      if (blockedAsset.block_level === 'account') {
-        const matches = blockedAsset.accountId == asset['Account ID'];
-        console.log(
-          'Comparing account IDs:', 
-          blockedAsset.accountId, 
-          asset['Account ID'],
-          'Matches:', matches
-        );
-        return matches;
-      }
-      return false;
-    });
-  };
-
-  // Log the filtered groups
-  console.log('Original groups:', assetGroups);
   const filteredAssetGroups = assetGroups.map(group => ({
     ...group,
-    headlines: group.headlines?.filter(headline => !isAssetBlocked(headline)) || [],
-    descriptions: group.descriptions?.filter(desc => !isAssetBlocked(desc)) || [],
-    images: group.images?.filter(image => !isAssetBlocked(image)) || [],
-    videos: group.videos?.filter(video => !isAssetBlocked(video)) || []
+    headlines: group.headlines || [],
+    descriptions: group.descriptions || [],
+    images: group.images || [],
+    videos: group.videos || []
   }));
-  console.log('Filtered groups:', filteredAssetGroups);
 
   const assetGroupVideos = filteredAssetGroups.map(group => group.videos || []);
   const videoCounts = assetGroupVideos.map(videos => videos.length);
@@ -339,61 +293,12 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
 };
 
 const AssetGroupDetail = ({ assetGroup }) => {
-  const [blacklistedAssets, setBlacklistedAssets] = useState([]);
+  const filteredHeadlines = assetGroup?.headlines || [];
+  const filteredDescriptions = assetGroup?.descriptions || [];
+  const filteredImages = assetGroup?.images || [];
 
-  useEffect(() => {
-    console.log('Initial assetGroup:', {
-      headlines: assetGroup?.headlines || [],
-      descriptions: assetGroup?.descriptions || [],
-      images: assetGroup?.images || [],
-      videos: assetGroup?.videos || []
-    });
-  }, [assetGroup]);
-
-  useEffect(() => {
-    const fetchBlacklist = async () => {
-      try {
-        const response = await fetch('/api/assets/blacklist');
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Blacklisted assets:', data);
-          setBlacklistedAssets(data);
-        }
-      } catch (error) {
-        console.error('Error fetching blacklist:', error);
-      }
-    };
-    fetchBlacklist();
-  }, []);
-
-  const isAssetBlocked = (asset) => {
-    if (!Array.isArray(blacklistedAssets) || blacklistedAssets.length === 0) {
-      return false;
-    }
-
-    return blacklistedAssets.some(blockedAsset => {
-      const assetAccountId = Number(asset['Account ID']);
-      const assetCampaignId = Number(asset['Campaign ID']);
-      const assetGroupId = Number(asset['Asset Group ID']);
-      const assetId = Number(asset['Asset ID']);
-
-      if (blockedAsset.block_level === 'account') {
-        return blockedAsset.accountId === assetAccountId;
-      } else if (blockedAsset.block_level === 'campaign') {
-        return blockedAsset.campaignId === assetCampaignId;
-      } else if (blockedAsset.block_level === 'assetgroup') {
-        return blockedAsset.assetGroupId === assetGroupId;
-      }
-      return blockedAsset.assetId === assetId;
-    });
-  };
-
-  const filteredHeadlines = assetGroup?.headlines?.filter(headline => !isAssetBlocked(headline)) || [];
-  const filteredDescriptions = assetGroup?.descriptions?.filter(desc => !isAssetBlocked(desc)) || [];
-  const filteredImages = assetGroup?.images?.filter(image => !isAssetBlocked(image)) || [];
-
-  // Filter videos against blacklist
-  const filteredVideos = assetGroup?.videos?.filter(video => !isAssetBlocked(video)) || [];
+  // Remove filter for videos
+  const filteredVideos = assetGroup?.videos || [];
 
   console.log('Filtered assets:', {
     headlines: filteredHeadlines.length,
