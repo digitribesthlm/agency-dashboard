@@ -33,7 +33,7 @@ export default function Home() {
           <div className="max-w-md">
             <h1 className="text-5xl font-bold">Welcome to Agency Dashboard</h1>
             <p className="py-6">
-              View and manage your Performance Max campaigns and assets.
+              View and manage your Performance Max campaigns and assets. sulan
             </p>
             <button 
               onClick={handleDashboardClick}

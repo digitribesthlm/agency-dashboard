@@ -298,133 +298,142 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => (
   </div>
 );
 
-const AssetGroupDetail = ({ assetGroup }) => (
-  <div className="space-y-8">
-    {/* Headlines Section */}
-    <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
-        <h2 className="card-title">Headlines</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {assetGroup.headlines.map((headline, index) => (
-            <div key={index} className="card bg-base-200">
-              <div className="card-body p-4">
-                <div className="flex justify-between items-start gap-2">
-                  <p className="flex-1">{headline['Text Content']}</p>
-                  {getPerformanceIcon(headline['Performance Label'])}
-                </div>
-                <div className="text-xs text-base-content/60 mt-2">
-                  Asset ID: {headline['Asset ID']}
-                </div>
-              </div>
-            </div>
-          ))}
-          {assetGroup.headlines.length === 0 && (
-            <p className="text-gray-500 italic">No headlines available</p>
-          )}
-        </div>
-      </div>
-    </div>
+const AssetGroupDetail = ({ assetGroup }) => {
+  const [blacklistedAssets, setBlacklistedAssets] = useState([]);
 
-    {/* Descriptions Section */}
-    <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
-        <h2 className="card-title">Descriptions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {assetGroup.descriptions.map((desc, index) => (
-            <div key={index} className="card bg-base-200">
-              <div className="card-body p-4">
-                <div className="flex justify-between items-start gap-2">
-                  <p className="flex-1">{desc['Text Content']}</p>
-                  {getPerformanceIcon(desc['Performance Label'])}
-                </div>
-                <div className="text-xs text-base-content/60 mt-2">
-                  Asset ID: {desc['Asset ID']}
-                </div>
-              </div>
-            </div>
-          ))}
-          {assetGroup.descriptions.length === 0 && (
-            <p className="text-gray-500 italic">No descriptions available</p>
-          )}
-        </div>
-      </div>
-    </div>
+  useEffect(() => {
+    console.log('Initial assetGroup:', {
+      headlines: assetGroup?.headlines || [],
+      descriptions: assetGroup?.descriptions || [],
+      images: assetGroup?.images || [],
+      videos: assetGroup?.videos || []
+    });
+  }, [assetGroup]);
 
-    {/* Images Section */}
-    <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
-        <h2 className="card-title">Images</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {assetGroup.images.map((image, index) => (
-            <div key={index} className="card bg-base-200">
-              <figure className="relative aspect-square">
-                {image['Image URL'] === 'View Image' ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-base-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                ) : (
-                  <img 
-                    src={image['Image URL']} 
-                    alt={`Marketing Image ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                )}
-                <div className="absolute top-2 right-2">
-                  {getPerformanceIcon(image['Performance Label'])}
-                </div>
-              </figure>
-              <div className="card-body p-3">
-                <div className="flex justify-between items-center">
-                  <div className="text-xs text-base-content/60">
-                    Asset ID: {image['Asset ID']}
-                  </div>
-                  <span className="text-xs badge badge-sm">
-                    {image['Performance Label'] || 'No Label'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+  useEffect(() => {
+    const fetchBlacklist = async () => {
+      try {
+        const response = await fetch('/api/assets/blacklist');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Blacklisted assets:', data);
+          setBlacklistedAssets(data);
+        }
+      } catch (error) {
+        console.error('Error fetching blacklist:', error);
+      }
+    };
+    fetchBlacklist();
+  }, []);
 
-    {/* Videos Section */}
-    {assetGroup.videos && assetGroup.videos.length > 0 && (
+  const isAssetBlocked = (asset) => {
+    const assetId = String(asset['Asset ID']);
+    const blocked = blacklistedAssets.some(blockedAsset => 
+      String(blockedAsset.assetId) === assetId
+    );
+    if (blocked) {
+      console.log('Asset blocked:', assetId);
+    }
+    return blocked;
+  };
+
+  const filteredHeadlines = assetGroup?.headlines?.filter(headline => !isAssetBlocked(headline)) || [];
+  const filteredDescriptions = assetGroup?.descriptions?.filter(desc => !isAssetBlocked(desc)) || [];
+  const filteredImages = assetGroup?.images?.filter(image => !isAssetBlocked(image)) || [];
+  const filteredVideos = assetGroup?.videos?.filter(video => !isAssetBlocked(video)) || [];
+
+  console.log('Filtered assets:', {
+    headlines: filteredHeadlines.length,
+    descriptions: filteredDescriptions.length,
+    images: filteredImages.length,
+    videos: filteredVideos.length
+  });
+
+  return (
+    <div className="space-y-8">
+      {/* Headlines Section */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title">Videos</h2>
+          <h2 className="card-title">Headlines</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {assetGroup.videos.map((video, index) => (
+            {filteredHeadlines.map((headline, index) => (
               <div key={index} className="card bg-base-200">
                 <div className="card-body p-4">
-                  <div className="relative">
-                    <div className="aspect-video rounded-lg overflow-hidden bg-base-300">
-                      <iframe
-                        className="w-full h-full"
-                        src={`https://www.youtube.com/embed/${video['Video ID']}`}
-                        title={video['Video Title']}
-                        allowFullScreen
-                      />
-                    </div>
-                    <div className="absolute top-2 right-2">
-                      {getPerformanceIcon(video['Performance Label'])}
-                    </div>
+                  <div className="flex justify-between items-start gap-2">
+                    <p className="flex-1">{headline['Text Content']}</p>
+                    {getPerformanceIcon(headline['Performance Label'])}
                   </div>
-                  <div className="mt-2">
-                    <h3 className="font-medium">
-                      {video['Video Title']}
-                    </h3>
-                    <div className="flex justify-between items-center mt-1">
-                      <div className="text-xs text-base-content/60">
-                        Asset ID: {video['Asset ID']}
-                      </div>
-                      <span className="text-xs badge badge-sm">
-                        {video['Performance Label'] || 'No Label'}
-                      </span>
+                  <div className="text-xs text-base-content/60 mt-2">
+                    Asset ID: {headline['Asset ID']}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {filteredHeadlines.length === 0 && (
+              <p className="text-gray-500 italic">No headlines available</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Descriptions Section */}
+      <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title">Descriptions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredDescriptions.map((desc, index) => (
+              <div key={index} className="card bg-base-200">
+                <div className="card-body p-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <p className="flex-1">{desc['Text Content']}</p>
+                    {getPerformanceIcon(desc['Performance Label'])}
+                  </div>
+                  <div className="text-xs text-base-content/60 mt-2">
+                    Asset ID: {desc['Asset ID']}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {filteredDescriptions.length === 0 && (
+              <p className="text-gray-500 italic">No descriptions available</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Images Section */}
+      <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title">Images</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredImages.map((image, index) => (
+              <div key={index} className="card bg-base-200">
+                <figure className="relative aspect-square">
+                  {image['Image URL'] === 'View Image' ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-base-200">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
                     </div>
+                  ) : (
+                    <img 
+                      src={image['Image URL']} 
+                      alt={`Marketing Image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="absolute top-2 right-2">
+                    {getPerformanceIcon(image['Performance Label'])}
+                  </div>
+                </figure>
+                <div className="card-body p-3">
+                  <div className="flex justify-between items-center">
+                    <div className="text-xs text-base-content/60">
+                      Asset ID: {image['Asset ID']}
+                    </div>
+                    <span className="text-xs badge badge-sm">
+                      {image['Performance Label'] || 'No Label'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -432,39 +441,82 @@ const AssetGroupDetail = ({ assetGroup }) => (
           </div>
         </div>
       </div>
-    )}
 
-    {/* Call to Actions Section */}
-    {assetGroup.callToActions && assetGroup.callToActions.length > 0 && (
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title">Call to Actions</h2>
-          <div className="flex flex-wrap gap-4">
-            {assetGroup.callToActions.map((cta, index) => (
-              <div key={index} className="badge badge-primary badge-lg">
-                {cta['Text Content']}
-              </div>
-            ))}
+      {/* Videos Section */}
+      {filteredVideos && filteredVideos.length > 0 && (
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <h2 className="card-title">Videos</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredVideos.map((video, index) => (
+                <div key={index} className="card bg-base-200">
+                  <div className="card-body p-4">
+                    <div className="relative">
+                      <div className="aspect-video rounded-lg overflow-hidden bg-base-300">
+                        <iframe
+                          className="w-full h-full"
+                          src={`https://www.youtube.com/embed/${video['Video ID']}`}
+                          title={video['Video Title']}
+                          allowFullScreen
+                        />
+                      </div>
+                      <div className="absolute top-2 right-2">
+                        {getPerformanceIcon(video['Performance Label'])}
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <h3 className="font-medium">
+                        {video['Video Title']}
+                      </h3>
+                      <div className="flex justify-between items-center mt-1">
+                        <div className="text-xs text-base-content/60">
+                          Asset ID: {video['Asset ID']}
+                        </div>
+                        <span className="text-xs badge badge-sm">
+                          {video['Performance Label'] || 'No Label'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* Final URL */}
-    {assetGroup.finalUrl && (
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title">Landing Page URL</h2>
-          <a 
-            href={assetGroup.finalUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="link link-primary"
-          >
-            {assetGroup.finalUrl}
-          </a>
+      {/* Call to Actions Section */}
+      {assetGroup.callToActions && assetGroup.callToActions.length > 0 && (
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <h2 className="card-title">Call to Actions</h2>
+            <div className="flex flex-wrap gap-4">
+              {assetGroup.callToActions.map((cta, index) => (
+                <div key={index} className="badge badge-primary badge-lg">
+                  {cta['Text Content']}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-    )}
-  </div>
-); 
+      )}
+
+      {/* Final URL */}
+      {assetGroup.finalUrl && (
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <h2 className="card-title">Landing Page URL</h2>
+            <a 
+              href={assetGroup.finalUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="link link-primary"
+            >
+              {assetGroup.finalUrl}
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}; 
