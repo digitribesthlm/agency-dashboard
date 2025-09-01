@@ -43,18 +43,40 @@ export default function Layout({ children }) {
                         >
                           Client Dashboard
                         </Link>
+                        <Link
+                          href="/client/create-ad"
+                          className={`px-3 py-2 text-sm font-medium ${
+                            router.pathname === '/client/create-ad'
+                              ? 'text-blue-600'
+                              : 'text-gray-600 hover:text-blue-600'
+                          }`}
+                        >
+                          Create Ad
+                        </Link>
                       </>
                     ) : (
-                      <Link
-                        href="/client/dashboard"
-                        className={`px-3 py-2 text-sm font-medium ${
-                          router.pathname === '/client/dashboard'
-                            ? 'text-blue-600'
-                            : 'text-gray-600 hover:text-blue-600'
-                        }`}
-                      >
-                        Dashboard
-                      </Link>
+                      <>
+                        <Link
+                          href="/client/dashboard"
+                          className={`px-3 py-2 text-sm font-medium ${
+                            router.pathname === '/client/dashboard'
+                              ? 'text-blue-600'
+                              : 'text-gray-600 hover:text-blue-600'
+                          }`}
+                        >
+                          Client Dashboard
+                        </Link>
+                        <Link
+                          href="/client/create-ad"
+                          className={`px-3 py-2 text-sm font-medium ${
+                            router.pathname === '/client/create-ad'
+                              ? 'text-blue-600'
+                              : 'text-gray-600 hover:text-blue-600'
+                          }`}
+                        >
+                          Create Ad
+                        </Link>
+                      </>
                     )}
                   </div>
                 </div>

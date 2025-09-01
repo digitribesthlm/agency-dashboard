@@ -1,0 +1,290 @@
+# Agency Dashboard - Google Ads Performance Max Campaign Viewer
+
+this is a admin page for adwords performance max campaing in google. this is a way of displaying the current and paused campaing in a more visual way. 
+
+the first part is a page there the user come to then not logged in. and there is a form to fill in in order to get the data and the user is redirected to the next page.
+
+the second part is the main page where the data is displayed and the user can go from campaing to adset group. 
+
+
+
+## Technical Setup
+
+This project is built using:
+- Next.js 14.2.3 as the React framework
+- MongoDB 6.3.0 for data storage
+- NextAuth.js 4.24.10 for authentication
+- TailwindCSS 3.4.14 with DaisyUI 4.12.14 for styling
+
+### Project Structure
+- `/pages` - Contains all route pages
+  - `/pages/index.js` - Landing page (login)
+  - `/pages/client/dashboard.js` - Main dashboard view
+- `/components` - Reusable UI components
+- `/lib` - Utility functions and helpers
+- `/styles` - Global styles and Tailwind configuration
+- `/data` - Data-related files and documentation
+
+### Features
+1. Authentication System
+   - Login form for user access
+   - Protected routes using NextAuth.js
+
+2. Dashboard Interface
+   - Campaign overview with performance indicators
+   - Visual representation of campaign status
+   - Navigation between campaigns and ad set groups
+
+3. Performance Visualization
+   - Status indicators (Best, Good, Low) with icons
+   - Interactive UI for data exploration
+
+### Role-Based System & Database Integration
+
+1. User Roles and Access:
+   - Two primary roles: 'admin' and 'client'
+   - Role information stored in MongoDB user collection
+   - Role verification performed on both client and server side
+
+2. Admin Dashboard Features:
+   - Exclusive access to admin dashboard (/admin/dashboard)
+   - Can view and manage all clients
+   - Access to client management features
+   - Real-time client data fetching from MongoDB
+
+3. Client Dashboard Features:
+   - Limited to their own dashboard view (/client/dashboard)
+   - Personalized campaign data display
+   - Role-specific UI elements and functionality
+   - Automatic redirect if accessing admin routes
+
+4. Database Integration:
+   - MongoDB connection managed through lib/mongodb.js
+   - Uses environment variables for secure configuration
+   - Development and production environment handling
+   - Database name: "agency"
+
+5. Security Measures:
+   - Server-side role verification on all protected routes
+   - Client-side route protection using useSession hook
+   - Automatic redirects for unauthorized access attempts
+   - Session-based authentication state management
+
+### Navigation System
+The application uses a responsive navigation bar implemented in the Layout component:
+
+1. Navigation Features:
+   - Conditional rendering based on user authentication status
+   - Role-based navigation (admin vs client views)
+   - Responsive design with mobile support
+   - Brand name customization via NEXT_PUBLIC_BRAND_NAME environment variable
+
+2. Navigation Links:
+   - Admin Users:
+     - Dashboard (/admin/dashboard)
+     - Clients (/admin/clients)
+   - Client Users:
+     - Dashboard (/client/dashboard)
+
+3. Authentication UI:
+   - Displays user email when logged in
+   - Sign In link when not authenticated
+   - Sign Out button for authenticated users
+   - Uses NextAuth.js signOut() function for secure logout
+   - Automatic redirect to login page after logout
+
+4. Layout Structure:
+   - Persistent navigation bar at the top
+   - Main content area with proper padding
+   - Footer section with additional information
+   - Responsive padding and max-width constraints
+
+### Admin-Specific Navigation
+
+1. Admin Navigation Menu:
+   - Exclusive navigation items for admin users
+   - Two main navigation links:
+     * Dashboard (/admin/dashboard)
+     * Clients (/admin/clients)
+   - Active link highlighting with blue color (text-blue-600)
+   - Responsive design with mobile considerations
+
+2. Admin Pages Structure:
+   - Main Admin Dashboard:
+     * Located at /admin/dashboard
+     * Displays assets and performance data
+     * Server-side data fetching for assets and performance metrics
+     * Protected route with role verification
+
+3. Navigation Access Control:
+   - Conditional rendering based on session.user.role
+   - Admin users see both Dashboard and Clients links
+   - Client users only see their Dashboard link
+   - Unauthorized access redirects to login page
+
+4. Admin Data Features:
+   - Real-time assets data fetching
+   - Performance metrics integration
+   - API endpoints for admin-specific data:
+     * /api/assets
+     * /api/assets-performance
+
+### Client Data Isolation
+
+1. Data Access Control:
+   - Each client's data is filtered by Account ID
+   - Account ID is stored in user session
+   - MongoDB queries filter data based on Account ID
+   - Prevents cross-client data access
+
+2. Implementation:
+   - Client dashboard uses session.user.accountId
+   - API endpoints enforce Account ID filtering
+   - Two main collections filtered:
+     * PMax_Assets
+     * PMax_Assets_Performance
+
+3. Data Structure:
+   - Assets linked to Account ID
+   - Performance data linked to Account ID
+   - Campaigns grouped by client
+   - Asset groups organized within campaigns
+
+4. Security Considerations:
+   - ⚠️ API endpoints should verify user role
+   - ⚠️ Add middleware protection for API routes
+   - ⚠️ Validate Account ID matches user session
+   - ⚠️ Add rate limiting for API requests
+
+### Asset Blocking System
+
+### Overview
+The asset blocking system allows admins to block assets at different levels (account, campaign, or asset group) to prevent them from being displayed in client dashboards.
+
+### Implementation Details
+
+#### Database
+- Collection: `PMAX_Assets_black_list`
+- Schema:
+```javascript
+{
+  assetId: String,
+  accountId: String,
+  campaignId: String,
+  assetGroupId: String,
+  reason: String,
+  blockedBy: String (admin email),
+  blockedAt: Date,
+  status: 'ACTIVE',
+  assetType: String,
+  block_level: 'account' | 'campaign' | 'assetgroup'
+}
+```
+
+#### Key Components
+
+1. **Admin Dashboard** (`/pages/admin/dashboard.js`)
+   - Shows block/delete icons for each asset
+   - Block modal with level selection (account/campaign/assetgroup)
+   - Reason input field
+   - Tracks who blocked the asset and when
+
+2. **Client Dashboard** (`/pages/client/dashboard.js`)
+   - Filters out blocked assets based on blacklist
+   - Checks asset IDs against blacklist before display
+
+3. **API Endpoints**
+   - `/api/assets/block.js`: Handles blocking requests
+   - `/api/assets/blacklist.js`: Retrieves active blocked assets
+
+### User Interface
+- Block icon (⛔) and delete icon (🗑️) shown to admin users
+- Modal for block level selection and reason
+- Visual indicators for blocked assets in admin view
+- Blocked assets hidden in client view
+
+### Security
+- Role-based access (admin only)
+- Server-side validation
+- Session checks for admin actions
+
+### Login Flow Implementation Issues
+
+1. Current Login Behavior:
+   - ⚠️ Hardcoded redirect to '/client/dashboard' after login
+   - ⚠️ No role-based routing logic in login flow
+   - ⚠️ 'manager' role not properly handled
+
+2. Login Flow Problems:
+   - Login page doesn't check user role before redirect
+   - System only handles 'admin' and 'client' roles
+   - No specific routing for 'manager' role
+   - Homepage also has hardcoded redirect to client dashboard
+
+3. Required Improvements:
+   - Implement role-based routing after login
+   - Add support for 'manager' role
+   - Create proper dashboard routes for all roles
+   - Add role verification before redirects
+
+4. Recommended Login Flow:
+   ```javascript
+   // Example logic needed in login.js
+   if (result.ok) {
+     switch(session.user.role) {
+       case 'admin':
+         router.push('/admin/dashboard');
+         break;
+       case 'manager':
+         router.push('/manager/dashboard');
+         break;
+       case 'client':
+         router.push('/client/dashboard');
+         break;
+       default:
+         router.push('/');
+     }
+   }
+   ```
+
+### Security Implementation Status
+
+1. Current Authentication Implementation:
+   - NextAuth.js handles session management
+   - Role stored in JWT token and session
+   - Session token signed with NEXTAUTH_SECRET
+   - Basic middleware protection for /client routes
+
+2. Security Concerns:
+   - ⚠️ Passwords stored as plain text in database
+   - ⚠️ Incomplete middleware protection for admin routes
+   - ⚠️ Heavy reliance on client-side role checking
+   - ⚠️ Direct database password comparison
+
+3. Recommended Security Improvements:
+   - Implement password hashing (e.g., bcrypt)
+   - Add middleware protection for all admin routes
+   - Implement server-side role verification for all admin APIs
+   - Add rate limiting for authentication attempts
+   - Use HTTP-only cookies for session storage
+   - Implement proper CORS policies
+
+4. Current Access Control:
+   - Session token contains: id, role, clientId, accountId
+   - Token is signed but should have additional protections
+   - Need stronger server-side validation for admin access
+
+
+collections
+
+PMAX_Assets_black_list
+
+{"_id":{"$oid":"674eddc900325fe2eac903bc"},"assetId":"113897972269","accountId":"3729097555","campaignId":"20075214957","assetGroupId":"6466703480","reason":"Content not approved","blockedBy":"admin@email.com","blockedAt":"2024-12-03T12:00:00Z","status":"ACTIVE","assetType":"image","block_level":"account"}
+
+PMAX_Assets
+
+{"_id":{"$oid":"6730975b5e6695b8a59fb584"},"Account ID":{"$numberLong":"3729097555"},"Account Name":"Climber AB","Campaign ID":{"$numberLong":"20075214957"},"Campaign Name":"Climber.fi - Performance Max","Campaign Status":"ENABLED","Asset Group ID":{"$numberLong":"6466702748"},"Asset Group Name":"Snowflake","Asset Group Status":"ENABLED","Asset ID":{"$numberLong":"123653287145"},"Asset Type":"YOUTUBE_VIDEO","Text Content":{"$numberDouble":"NaN"},"Field Type":"YOUTUBE_VIDEO","Image URL":{"$numberDouble":"NaN"},"Video Title":"Climber.fi - Optimize your data pipeline","Video ID":"DH--0maDiuY","Final URL":"https://www.climber.fi/tarjontamme/tyokalumme/snowflake-data-cloud-solutions/","Performance Max Label":{"$numberDouble":"NaN"},"created_at":{"$date":{"$numberLong":"1731237723403"}}}
+
+PMAX_Assets_Performance
+
+{"_id":{"$oid":"6730975b5e6695b8a59fb863"},"Account ID":{"$numberLong":"3729097555"},"Account Name":"Climber AB","Campaign ID":{"$numberLong":"20800901987"},"Campaign Name":"Climber.nl - Performance Max","Asset Group ID":{"$numberLong":"6483335416"},"Asset Group Name":"5. Snowflake","Asset ID":{"$numberLong":"13519415654"},"Asset Type":"IMAGE","Asset Resource Name":"customers/3729097555/assets/13519415654","Text Content":{"$numberDouble":"NaN"},"Field Type":"MARKETING_IMAGE","Ad Strength":"AVERAGE","Performance Label":"UNKNOWN","created_at":{"$date":{"$numberLong":"1731237723416"}}}

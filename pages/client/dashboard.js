@@ -293,6 +293,24 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
 };
 
 const AssetGroupDetail = ({ assetGroup }) => {
+  const [newHeadline, setNewHeadline] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newDescription, setNewDescription] = useState('');
+  const [showAddDescriptionForm, setShowAddDescriptionForm] = useState(false);
+  const [newLandingPage, setNewLandingPage] = useState('');
+  const [showAddLandingPageForm, setShowAddLandingPageForm] = useState(false);
+  const [pausedImages, setPausedImages] = useState([]);
+  const [pausedVideos, setPausedVideos] = useState([]);
+  const [pausedHeadlines, setPausedHeadlines] = useState([]);
+  const [pausedDescriptions, setPausedDescriptions] = useState([]);
+  const [showVideoLibrary, setShowVideoLibrary] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [changesHistory, setChangesHistory] = useState([]);
+  const [showChangesHistory, setShowChangesHistory] = useState(false);
+  const [pendingHeadlines, setPendingHeadlines] = useState([]);
+  const [pendingDescriptions, setPendingDescriptions] = useState([]);
+  const [pendingLandingPages, setPendingLandingPages] = useState([]);
+  
   const filteredHeadlines = assetGroup?.headlines || [];
   const filteredDescriptions = assetGroup?.descriptions || [];
   const filteredImages = assetGroup?.images || [];
@@ -307,22 +325,595 @@ const AssetGroupDetail = ({ assetGroup }) => {
     videos: filteredVideos.length
   });
 
+  // Fetch changes history and pending content when component mounts
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!assetGroup?.assetGroupId) return;
+      
+      try {
+        // Fetch changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          console.log('Fetched changes data:', changesData);
+          if (changesData.success) {
+            console.log('Setting changes history:', changesData.data);
+            setChangesHistory(changesData.data);
+          }
+        }
+
+        // Fetch paused status for all asset types
+        const statusResponse = await fetch(`/api/asset-status?assetGroupId=${assetGroup.assetGroupId}`);
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          console.log('Fetched paused status:', statusData);
+          if (statusData.success) {
+            const { pausedAssets } = statusData.data;
+            setPausedHeadlines(pausedAssets.headlines);
+            setPausedDescriptions(pausedAssets.descriptions);
+            setPausedImages(pausedAssets.images);
+            setPausedVideos(pausedAssets.videos);
+            console.log('Restored paused status:', pausedAssets);
+          }
+        }
+
+        // Fetch pending headlines
+        const headlinesResponse = await fetch(`/api/headlines?assetGroupId=${assetGroup.assetGroupId}`);
+        if (headlinesResponse.ok) {
+          const headlinesData = await headlinesResponse.json();
+          console.log('Fetched pending headlines:', headlinesData);
+          if (headlinesData.success) {
+            setPendingHeadlines(headlinesData.data);
+          }
+        }
+
+        // Fetch pending descriptions
+        const descriptionsResponse = await fetch(`/api/descriptions?assetGroupId=${assetGroup.assetGroupId}`);
+        if (descriptionsResponse.ok) {
+          const descriptionsData = await descriptionsResponse.json();
+          if (descriptionsData.success) {
+            setPendingDescriptions(descriptionsData.data);
+          }
+        }
+
+        // Fetch pending landing pages
+        const landingPagesResponse = await fetch(`/api/landing-pages?assetGroupId=${assetGroup.assetGroupId}`);
+        if (landingPagesResponse.ok) {
+          const landingPagesData = await landingPagesResponse.json();
+          if (landingPagesData.success) {
+            setPendingLandingPages(landingPagesData.data);
+          }
+        }
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, [assetGroup?.assetGroupId]);
+
+
+
+  const handleAddHeadline = async () => {
+    if (!newHeadline.trim()) return;
+    
+    console.log('Adding headline with assetGroup:', assetGroup);
+    
+    try {
+      const response = await fetch('/api/headlines', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: newHeadline.trim(),
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId || 'unknown',
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        
+        // Add the new headline to the pending headlines state immediately
+        const newHeadlineData = {
+          'Asset ID': responseData.data.assetId,
+          'Text Content': newHeadline.trim(),
+          'Asset Type': 'TEXT',
+          'Field Type': 'HEADLINE',
+          'Performance Label': 'PENDING',
+          'Campaign ID': assetGroup.campaignId || 'unknown',
+          'Asset Group ID': assetGroup.assetGroupId,
+          'Account ID': assetGroup.accountId || 1,
+          'isPending': true,
+          'createdBy': 'current_user', // This will be updated when we fetch from server
+          'createdAt': new Date(),
+          'approved': false
+        };
+        
+        setPendingHeadlines(prev => [...prev, newHeadlineData]);
+        setNewHeadline('');
+        setShowAddForm(false);
+        
+        // Also refresh from server to get the complete data
+        const headlinesResponse = await fetch(`/api/headlines?assetGroupId=${assetGroup.assetGroupId}`);
+        if (headlinesResponse.ok) {
+          const headlinesData = await headlinesResponse.json();
+          if (headlinesData.success) {
+            setPendingHeadlines(headlinesData.data);
+          }
+        }
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          console.log('Refreshed changes data after adding headline:', changesData);
+          if (changesData.success) {
+            console.log('Setting refreshed changes history:', changesData.data);
+            setChangesHistory(changesData.data);
+          }
+        }
+      } else {
+        console.error('Failed to add headline');
+      }
+    } catch (error) {
+      console.error('Error adding headline:', error);
+    }
+  };
+
+  const handleAddDescription = async () => {
+    if (!newDescription.trim()) return;
+    
+    try {
+      const response = await fetch('/api/descriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: newDescription.trim(),
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        
+        // Add the new description to the pending descriptions state immediately
+        const newDescriptionData = {
+          'Asset ID': responseData.data.assetId,
+          'Text Content': newDescription.trim(),
+          'Asset Type': 'TEXT',
+          'Field Type': 'DESCRIPTION',
+          'Performance Label': 'PENDING',
+          'Campaign ID': assetGroup.campaignId || 'unknown',
+          'Asset Group ID': assetGroup.assetGroupId,
+          'Account ID': assetGroup.accountId || 1,
+          'isPending': true,
+          'createdBy': 'current_user',
+          'createdAt': new Date(),
+          'approved': false
+        };
+        
+        setPendingDescriptions(prev => [...prev, newDescriptionData]);
+        setNewDescription('');
+        setShowAddDescriptionForm(false);
+        
+        // Also refresh from server to get the complete data
+        const descriptionsResponse = await fetch(`/api/descriptions?assetGroupId=${assetGroup.assetGroupId}`);
+        if (descriptionsResponse.ok) {
+          const descriptionsData = await descriptionsResponse.json();
+          if (descriptionsData.success) {
+            setPendingDescriptions(descriptionsData.data);
+          }
+        }
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
+      } else {
+        console.error('Failed to add description');
+      }
+    } catch (error) {
+      console.error('Error adding description:', error);
+    }
+  };
+
+  const handleAddLandingPage = async () => {
+    if (!newLandingPage.trim()) return;
+    
+    try {
+      const response = await fetch('/api/landing-pages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: newLandingPage.trim(),
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        
+        // Add the new landing page to the pending landing pages state immediately
+        const newLandingPageData = {
+          'Landing Page ID': responseData.data.landingPageId,
+          'Final URL': newLandingPage.trim(),
+          'Campaign ID': assetGroup.campaignId || 'unknown',
+          'Asset Group ID': assetGroup.assetGroupId,
+          'Account ID': assetGroup.accountId || 1,
+          'isPending': true,
+          'createdBy': 'current_user',
+          'createdAt': new Date(),
+          'approved': false
+        };
+        
+        setPendingLandingPages(prev => [...prev, newLandingPageData]);
+        setNewLandingPage('');
+        setShowAddLandingPageForm(false);
+        
+        // Also refresh from server to get the complete data
+        const landingPagesResponse = await fetch(`/api/landing-pages?assetGroupId=${assetGroup.assetGroupId}`);
+        if (landingPagesResponse.ok) {
+          const landingPagesData = await landingPagesResponse.json();
+          if (landingPagesData.success) {
+            setPendingLandingPages(landingPagesData.data);
+          }
+        }
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
+      } else {
+        console.error('Failed to add landing page');
+      }
+    } catch (error) {
+      console.error('Error adding landing page:', error);
+    }
+  };
+
+  const handlePauseImage = async (imageId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'pause',
+          assetType: 'image',
+          assetId: imageId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        setPausedImages(prev => [...prev, imageId]);
+      } else {
+        console.error('Failed to pause image');
+      }
+    } catch (error) {
+      console.error('Error pausing image:', error);
+    }
+  };
+
+  const handleRemoveImage = async (imageId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'remove',
+          assetType: 'image',
+          assetId: imageId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        setPausedImages(prev => prev.filter(id => id !== imageId));
+        window.location.reload();
+      } else {
+        console.error('Failed to remove image');
+      }
+    } catch (error) {
+      console.error('Error removing image:', error);
+    }
+  };
+
+  const handlePauseVideo = async (videoId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'pause',
+          assetType: 'video',
+          assetId: videoId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        setPausedVideos(prev => [...prev, videoId]);
+      } else {
+        console.error('Failed to pause video');
+      }
+    } catch (error) {
+      console.error('Error pausing video:', error);
+    }
+  };
+
+  const handleResumeVideo = async (videoId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'resume',
+          assetType: 'video',
+          assetId: videoId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        setPausedVideos(prev => prev.filter(id => id !== videoId));
+      } else {
+        console.error('Failed to resume video');
+      }
+    } catch (error) {
+      console.error('Error resuming video:', error);
+    }
+  };
+
+  const handlePauseHeadline = async (headlineId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'pause',
+          assetType: 'headline',
+          assetId: headlineId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        setPausedHeadlines(prev => [...prev, headlineId]);
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
+      } else {
+        console.error('Failed to pause headline');
+      }
+    } catch (error) {
+      console.error('Error pausing headline:', error);
+    }
+  };
+
+  const handleResumeHeadline = async (headlineId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'resume',
+          assetType: 'headline',
+          assetId: headlineId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        setPausedHeadlines(prev => prev.filter(id => id !== headlineId));
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
+      } else {
+        console.error('Failed to resume headline');
+      }
+    } catch (error) {
+      console.error('Error resuming headline:', error);
+    }
+  };
+
+  const handlePauseDescription = async (descriptionId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'pause',
+          assetType: 'description',
+          assetId: descriptionId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        setPausedDescriptions(prev => [...prev, descriptionId]);
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
+      } else {
+        console.error('Failed to pause description');
+      }
+    } catch (error) {
+      console.error('Error pausing description:', error);
+    }
+  };
+
+  const handleResumeDescription = async (descriptionId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'resume',
+          assetType: 'description',
+          assetId: descriptionId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        setPausedDescriptions(prev => prev.filter(id => id !== descriptionId));
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
+      } else {
+        console.error('Failed to resume description');
+      }
+    } catch (error) {
+      console.error('Error resuming description:', error);
+    }
+  };
+
+  const handleAddVideoFromLibrary = () => {
+    if (selectedVideo) {
+      // Add the selected video to the current asset group
+      // For now, just show it in light gray like other new content
+      setShowVideoLibrary(false);
+      setSelectedVideo(null);
+    }
+  };
+
   const renderVideoThumbnail = (video, index) => {
     if (!video) return null;
+    const isPaused = pausedVideos.includes(video['Asset ID']);
 
     return (
-      <div key={index} className="relative">
-        <div className="aspect-video bg-base-200 rounded-lg overflow-hidden">
-          <iframe
-            className="w-full h-full"
-            src={`https://www.youtube.com/embed/${video['Video ID']}`}
-            title="Ad Preview"
-            allowFullScreen
-          />
-        </div>
-        <div className="text-xs text-base-content/60 mt-2 flex items-center justify-between">
-          <span>Asset ID: {video['Asset ID']}</span>
-          <span>{video['Performance Label'] || 'UNKNOWN'}</span>
+      <div key={index} className={`card ${isPaused ? 'bg-gray-300 opacity-60' : 'bg-base-200'}`}>
+        <div className="card-body p-4">
+          <div className="relative">
+            <div className="aspect-video bg-base-200 rounded-lg overflow-hidden">
+              <iframe
+                className="w-full h-full"
+                src={`https://www.youtube.com/embed/${video['Video ID']}`}
+                title="Ad Preview"
+                allowFullScreen
+              />
+            </div>
+            {isPaused && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <span className="text-white font-bold text-lg">PAUSED</span>
+              </div>
+            )}
+          </div>
+          <div className="mt-3">
+            <h3 className="font-medium text-sm">
+              {video['Video Title']}
+            </h3>
+            <div className="text-xs text-base-content/60 mt-2 flex items-center justify-between">
+              <span>Asset ID: {video['Asset ID']}</span>
+              <span className="badge badge-sm">{video['Performance Label'] || 'UNKNOWN'}</span>
+            </div>
+            <div className="flex gap-1 mt-3">
+              <button 
+                className={`btn btn-xs flex-1 ${isPaused ? 'btn-success' : 'btn-warning'}`}
+                onClick={() => isPaused ? handleResumeVideo(video['Asset ID']) : handlePauseVideo(video['Asset ID'])}
+              >
+                {isPaused ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M15 14h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Resume
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Pause
+                  </>
+                )}
+              </button>
+              <button 
+                className="btn btn-error btn-xs"
+                onClick={() => handlePauseVideo(video['Asset ID'])}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -333,22 +924,115 @@ const AssetGroupDetail = ({ assetGroup }) => {
       {/* Headlines Section */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title">Headlines</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="card-title">Headlines</h2>
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowAddForm(!showAddForm)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Headline
+            </button>
+          </div>
+
+          {/* Add Headline Form */}
+          {showAddForm && (
+            <div className="mb-6 p-4 bg-base-200 rounded-lg">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">New Headline</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered w-full"
+                  placeholder="Enter your headline text..."
+                  value={newHeadline}
+                  onChange={(e) => setNewHeadline(e.target.value)}
+                  rows={2}
+                />
+                <div className="flex gap-2 mt-3">
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={handleAddHeadline}
+                    disabled={!newHeadline.trim()}
+                  >
+                    Add Headline
+                  </button>
+                  <button 
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setShowAddForm(false);
+                      setNewHeadline('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Approved Headlines */}
             {filteredHeadlines.map((headline, index) => (
               <div key={index} className="card bg-base-200">
                 <div className="card-body p-4">
                   <div className="flex justify-between items-start gap-2">
                     <p className="flex-1">{headline['Text Content']}</p>
-                    {getPerformanceIcon(headline['Performance Label'])}
+                    <div className="flex items-center gap-2">
+                      {getPerformanceIcon(headline['Performance Label'])}
+                      {pausedHeadlines.includes(headline['Asset ID']) ? (
+                        <button
+                          className="btn btn-sm btn-success"
+                          onClick={() => handleResumeHeadline(headline['Asset ID'])}
+                        >
+                          Resume
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-warning"
+                          onClick={() => handlePauseHeadline(headline['Asset ID'])}
+                        >
+                          Pause
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="text-xs text-base-content/60 mt-2">
                     Asset ID: {headline['Asset ID']}
+                    {pausedHeadlines.includes(headline['Asset ID']) && (
+                      <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
-            {filteredHeadlines.length === 0 && (
+
+            {/* Pending Headlines (Light Gray) */}
+            {pendingHeadlines.map((headline, index) => (
+              <div key={`pending-${index}`} className="card bg-gray-300 border-2 border-dashed border-gray-400">
+                <div className="card-body p-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <p className="flex-1 text-gray-600">{headline['Text Content']}</p>
+                    <div className="tooltip" data-tip="Pending Approval">
+                      <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2 flex items-center gap-2">
+                    <span>Asset ID: {headline['Asset ID']}</span>
+                    <span className="badge badge-sm badge-warning">PENDING</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Created: {new Date(headline.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {filteredHeadlines.length === 0 && pendingHeadlines.length === 0 && (
               <p className="text-gray-500 italic">No headlines available</p>
             )}
           </div>
@@ -358,22 +1042,115 @@ const AssetGroupDetail = ({ assetGroup }) => {
       {/* Descriptions Section */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title">Descriptions</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="card-title">Descriptions</h2>
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowAddDescriptionForm(!showAddDescriptionForm)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Description
+            </button>
+          </div>
+
+          {/* Add Description Form */}
+          {showAddDescriptionForm && (
+            <div className="mb-6 p-4 bg-base-200 rounded-lg">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">New Description</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered w-full"
+                  placeholder="Enter your description text..."
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  rows={3}
+                />
+                <div className="flex gap-2 mt-3">
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={handleAddDescription}
+                    disabled={!newDescription.trim()}
+                  >
+                    Add Description
+                  </button>
+                  <button 
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setShowAddDescriptionForm(false);
+                      setNewDescription('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Approved Descriptions */}
             {filteredDescriptions.map((desc, index) => (
               <div key={index} className="card bg-base-200">
                 <div className="card-body p-4">
                   <div className="flex justify-between items-start gap-2">
                     <p className="flex-1">{desc['Text Content']}</p>
-                    {getPerformanceIcon(desc['Performance Label'])}
+                    <div className="flex items-center gap-2">
+                      {getPerformanceIcon(desc['Performance Label'])}
+                      {pausedDescriptions.includes(desc['Asset ID']) ? (
+                        <button
+                          className="btn btn-sm btn-success"
+                          onClick={() => handleResumeDescription(desc['Asset ID'])}
+                        >
+                          Resume
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-warning"
+                          onClick={() => handlePauseDescription(desc['Asset ID'])}
+                        >
+                          Pause
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="text-xs text-base-content/60 mt-2">
                     Asset ID: {desc['Asset ID']}
+                    {pausedDescriptions.includes(desc['Asset ID']) && (
+                      <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
-            {filteredDescriptions.length === 0 && (
+
+            {/* Pending Descriptions (Light Gray) */}
+            {pendingDescriptions.map((desc, index) => (
+              <div key={`pending-desc-${index}`} className="card bg-gray-300 border-2 border-dashed border-gray-400">
+                <div className="card-body p-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <p className="flex-1 text-gray-600">{desc['Text Content']}</p>
+                    <div className="tooltip" data-tip="Pending Approval">
+                      <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2 flex items-center gap-2">
+                    <span>Asset ID: {desc['Asset ID']}</span>
+                    <span className="badge badge-sm badge-warning">PENDING</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Created: {new Date(desc.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {filteredDescriptions.length === 0 && pendingDescriptions.length === 0 && (
               <p className="text-gray-500 italic">No descriptions available</p>
             )}
           </div>
@@ -385,51 +1162,161 @@ const AssetGroupDetail = ({ assetGroup }) => {
         <div className="card-body">
           <h2 className="card-title">Images</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredImages.map((image, index) => (
-              <div key={index} className="card bg-base-200">
-                <figure className="relative aspect-square">
-                  {image['Image URL'] === 'View Image' ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-base-200">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+            {filteredImages.map((image, index) => {
+              const isPaused = pausedImages.includes(image['Asset ID']);
+              return (
+                <div key={index} className={`card ${isPaused ? 'bg-gray-300 opacity-60' : 'bg-base-200'}`}>
+                  <figure className="relative aspect-square">
+                    {image['Image URL'] === 'View Image' ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-base-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    ) : (
+                      <img 
+                        src={image['Image URL']} 
+                        alt={`Marketing Image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute top-2 right-2">
+                      {getPerformanceIcon(image['Performance Label'])}
                     </div>
-                  ) : (
-                    <img 
-                      src={image['Image URL']} 
-                      alt={`Marketing Image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                  <div className="absolute top-2 right-2">
-                    {getPerformanceIcon(image['Performance Label'])}
-                  </div>
-                </figure>
-                <div className="card-body p-3">
-                  <div className="flex justify-between items-center">
-                    <div className="text-xs text-base-content/60">
-                      Asset ID: {image['Asset ID']}
+                    {isPaused && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <span className="text-white font-bold text-lg">PAUSED</span>
+                      </div>
+                    )}
+                  </figure>
+                  <div className="card-body p-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="text-xs text-base-content/60">
+                        Asset ID: {image['Asset ID']}
+                      </div>
+                      <span className="text-xs badge badge-sm">
+                        {image['Performance Label'] || 'No Label'}
+                      </span>
                     </div>
-                    <span className="text-xs badge badge-sm">
-                      {image['Performance Label'] || 'No Label'}
-                    </span>
+                    <div className="flex gap-1">
+                      <button 
+                        className={`btn btn-xs flex-1 ${isPaused ? 'btn-success' : 'btn-warning'}`}
+                        onClick={() => isPaused ? handleRemoveImage(image['Asset ID']) : handlePauseImage(image['Asset ID'])}
+                      >
+                        {isPaused ? (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M15 14h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Resume
+                          </>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Pause
+                          </>
+                        )}
+                      </button>
+                      <button 
+                        className="btn btn-error btn-xs"
+                        onClick={() => handlePauseImage(image['Asset ID'])}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
       {/* Videos Section */}
-      {filteredVideos && filteredVideos.length > 0 && (
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
+      <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <div className="flex justify-between items-center mb-4">
             <h2 className="card-title">Videos</h2>
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowVideoLibrary(true)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add from Library
+            </button>
+          </div>
+          
+          {filteredVideos && filteredVideos.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredVideos.map((video, index) => (
                 renderVideoThumbnail(video, index)
               ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 italic">No videos available</p>
+          )}
+        </div>
+      </div>
+
+      {/* Video Library Modal */}
+      {showVideoLibrary && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-4xl">
+            <h3 className="font-bold text-lg mb-4">Video Library</h3>
+            
+            {/* Sample video library - you can replace this with actual video data */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+              {[
+                { id: 'lib1', title: 'Product Demo Video', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg', duration: '2:30' },
+                { id: 'lib2', title: 'Brand Story', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg', duration: '1:45' },
+                { id: 'lib3', title: 'Customer Testimonial', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg', duration: '3:15' },
+                { id: 'lib4', title: 'How It Works', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg', duration: '4:20' },
+                { id: 'lib5', title: 'Behind the Scenes', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg', duration: '2:10' },
+                { id: 'lib6', title: 'Feature Overview', thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg', duration: '3:45' }
+              ].map((video) => (
+                <div 
+                  key={video.id} 
+                  className={`card cursor-pointer transition-all ${selectedVideo?.id === video.id ? 'ring-2 ring-primary' : 'hover:shadow-lg'}`}
+                  onClick={() => setSelectedVideo(video)}
+                >
+                  <figure className="aspect-video">
+                    <img 
+                      src={video.thumbnail} 
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </figure>
+                  <div className="card-body p-3">
+                    <h4 className="font-medium text-sm">{video.title}</h4>
+                    <p className="text-xs text-base-content/60">{video.duration}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="modal-action">
+              <button 
+                className="btn btn-primary"
+                onClick={handleAddVideoFromLibrary}
+                disabled={!selectedVideo}
+              >
+                Add Selected Video
+              </button>
+              <button 
+                className="btn"
+                onClick={() => {
+                  setShowVideoLibrary(false);
+                  setSelectedVideo(null);
+                }}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -451,22 +1338,154 @@ const AssetGroupDetail = ({ assetGroup }) => {
         </div>
       )}
 
-      {/* Final URL */}
-      {assetGroup.finalUrl && (
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
+      {/* Landing Page URL Section */}
+      <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <div className="flex justify-between items-center mb-4">
             <h2 className="card-title">Landing Page URL</h2>
-            <a 
-              href={assetGroup.finalUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="link link-primary"
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowAddLandingPageForm(!showAddLandingPageForm)}
             >
-              {assetGroup.finalUrl}
-            </a>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add URL
+            </button>
+          </div>
+
+          {/* Add Landing Page Form */}
+          {showAddLandingPageForm && (
+            <div className="mb-6 p-4 bg-base-200 rounded-lg">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">New Landing Page URL</span>
+                </label>
+                <input
+                  type="url"
+                  className="input input-bordered w-full"
+                  placeholder="https://example.com"
+                  value={newLandingPage}
+                  onChange={(e) => setNewLandingPage(e.target.value)}
+                />
+                <div className="flex gap-2 mt-3">
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={handleAddLandingPage}
+                    disabled={!newLandingPage.trim()}
+                  >
+                    Add URL
+                  </button>
+                  <button 
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setShowAddLandingPageForm(false);
+                      setNewLandingPage('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {/* Current Landing Page */}
+            {assetGroup.finalUrl && (
+              <div className="p-3 bg-base-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <a 
+                    href={assetGroup.finalUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="link link-primary flex-1"
+                  >
+                    {assetGroup.finalUrl}
+                  </a>
+                  <span className="badge badge-sm badge-success">Current</span>
+                </div>
+              </div>
+            )}
+
+            {/* Pending Landing Pages (Light Gray) */}
+            {pendingLandingPages.map((landingPage, index) => (
+              <div key={`pending-landing-${index}`} className="p-3 bg-gray-300 border-2 border-dashed border-gray-400 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 flex-1">{landingPage['Final URL']}</span>
+                  <span className="badge badge-sm badge-warning">PENDING</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Created: {new Date(landingPage.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+
+            {!assetGroup.finalUrl && pendingLandingPages.length === 0 && (
+              <p className="text-gray-500 italic">No landing page URL available</p>
+            )}
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Changes History Section */}
+      <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="card-title">Changes History</h2>
+            <button 
+              className="btn btn-outline btn-sm"
+              onClick={() => setShowChangesHistory(!showChangesHistory)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {showChangesHistory ? 'Hide' : 'Show'} History
+            </button>
+          </div>
+
+          {showChangesHistory && (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {changesHistory.length > 0 ? (
+                changesHistory.map((change, index) => (
+                  <div key={index} className="p-3 bg-base-200 rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="badge badge-sm badge-primary">{change.action}</span>
+                          <span className="badge badge-sm badge-secondary">{change.assetType}</span>
+                          <span className="badge badge-sm badge-outline">{change.status}</span>
+                        </div>
+                        <p className="text-sm text-base-content/80">
+                          {change.action === 'add' && change.assetType === 'headline' && `Added headline: "${change.data?.text}"`}
+                          {change.action === 'add' && change.assetType === 'description' && `Added description: "${change.data?.text}"`}
+                          {change.action === 'add' && change.assetType === 'landing_page' && `Added landing page: "${change.data?.url}"`}
+                          {change.action === 'pause' && change.assetType === 'headline' && `Paused headline (ID: ${change.assetId})`}
+                          {change.action === 'pause' && change.assetType === 'description' && `Paused description (ID: ${change.assetId})`}
+                          {change.action === 'pause' && change.assetType === 'image' && `Paused image (ID: ${change.assetId})`}
+                          {change.action === 'pause' && change.assetType === 'video' && `Paused video (ID: ${change.assetId})`}
+                          {change.action === 'resume' && change.assetType === 'headline' && `Resumed headline (ID: ${change.assetId})`}
+                          {change.action === 'resume' && change.assetType === 'description' && `Resumed description (ID: ${change.assetId})`}
+                          {change.action === 'resume' && change.assetType === 'image' && `Resumed image (ID: ${change.assetId})`}
+                          {change.action === 'resume' && change.assetType === 'video' && `Resumed video (ID: ${change.assetId})`}
+                          {change.action === 'remove' && `Removed ${change.assetType} (ID: ${change.assetId})`}
+                        </p>
+                      </div>
+                      <div className="text-right text-xs text-base-content/60">
+                        <div>{change.changedBy}</div>
+                        <div>{new Date(change.changedAt).toLocaleString()}</div>
+                        <div className="badge badge-xs badge-ghost">{change.userRole}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 italic text-center py-4">No changes recorded yet</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

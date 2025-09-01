@@ -342,6 +342,8 @@ const AssetGroupDetail = ({ assetGroup }) => {
   const [blockReason, setBlockReason] = useState('');
   const [blockLevel, setBlockLevel] = useState('');
   const [blacklistedAssets, setBlacklistedAssets] = useState([]);
+  const [pendingHeadlines, setPendingHeadlines] = useState([]);
+  const [loadingPending, setLoadingPending] = useState(false);
 
   useEffect(() => {
     const fetchBlacklist = async () => {
@@ -358,6 +360,33 @@ const AssetGroupDetail = ({ assetGroup }) => {
     };
     fetchBlacklist();
   }, []);
+
+  useEffect(() => {
+    const fetchPendingHeadlines = async () => {
+      setLoadingPending(true);
+      try {
+        const response = await fetch('/api/admin/headlines');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // Filter pending headlines for this specific asset group
+            const filteredHeadlines = data.data.filter(headline => 
+              headline['Asset Group ID'] === assetGroup.assetGroupId
+            );
+            setPendingHeadlines(filteredHeadlines);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching pending headlines:', error);
+      } finally {
+        setLoadingPending(false);
+      }
+    };
+
+    if (assetGroup?.assetGroupId) {
+      fetchPendingHeadlines();
+    }
+  }, [assetGroup?.assetGroupId]);
 
   const isAssetBlocked = (asset) => {
     const assetId = String(asset['Asset ID']);
@@ -423,6 +452,55 @@ const AssetGroupDetail = ({ assetGroup }) => {
   const handleDelete = (assetId) => {
     // Implement delete logic here
     console.log('Delete asset:', assetId);
+  };
+
+  const handleApproveHeadline = async (headlineId) => {
+    try {
+      const response = await fetch('/api/admin/headlines', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'approve',
+          headlineId: headlineId
+        }),
+      });
+
+      if (response.ok) {
+        // Remove the approved headline from pending list
+        setPendingHeadlines(prev => prev.filter(h => h._id !== headlineId));
+        // You might want to refresh the main headlines list here
+      } else {
+        console.error('Failed to approve headline');
+      }
+    } catch (error) {
+      console.error('Error approving headline:', error);
+    }
+  };
+
+  const handleRejectHeadline = async (headlineId) => {
+    try {
+      const response = await fetch('/api/admin/headlines', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reject',
+          headlineId: headlineId
+        }),
+      });
+
+      if (response.ok) {
+        // Remove the rejected headline from pending list
+        setPendingHeadlines(prev => prev.filter(h => h._id !== headlineId));
+      } else {
+        console.error('Failed to reject headline');
+      }
+    } catch (error) {
+      console.error('Error rejecting headline:', error);
+    }
   };
 
   return (
@@ -523,6 +601,61 @@ const AssetGroupDetail = ({ assetGroup }) => {
           </div>
         </div>
       </div>
+
+      {/* Pending Headlines Section */}
+      {pendingHeadlines.length > 0 && (
+        <div className="card bg-base-100 shadow-xl border-l-4 border-warning">
+          <div className="card-body">
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="card-title text-warning">Pending Headlines</h2>
+              <span className="badge badge-warning">{pendingHeadlines.length}</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pendingHeadlines.map((headline, index) => (
+                <div key={index} className="card bg-gray-300 border-2 border-dashed border-gray-400">
+                  <div className="card-body p-4">
+                    <div className="flex justify-between items-start gap-2">
+                      <p className="flex-1 text-gray-600">{headline['Text Content']}</p>
+                      <div className="tooltip" data-tip="Pending Approval">
+                        <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2 flex items-center justify-between">
+                      <span>Asset ID: {headline['Asset ID']}</span>
+                      <span className="badge badge-sm badge-warning">PENDING</span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Created by: {headline.createdBy}
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button 
+                        className="btn btn-success btn-xs flex-1"
+                        onClick={() => handleApproveHeadline(headline._id)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Approve
+                      </button>
+                      <button 
+                        className="btn btn-error btn-xs flex-1"
+                        onClick={() => handleRejectHeadline(headline._id)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Descriptions Section */}
       <div className="card bg-base-100 shadow-xl">
