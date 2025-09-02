@@ -791,16 +791,49 @@ const AssetGroupDetail = ({ assetGroup }) => {
 
   const renderVideoThumbnail = (video, index) => {
     if (!video) return null;
-    // Temporarily simplified to avoid potential issues
+    
+    const isPaused = pausedVideos.includes(video['Asset ID']);
+    
     return (
-      <div key={index} className="card bg-base-200">
+      <div key={index} className={`card ${isPaused ? 'bg-gray-300 opacity-60' : 'bg-base-200'}`}>
+        <figure className="aspect-video">
+          <iframe
+            className="w-full h-full"
+            src={`https://www.youtube.com/embed/${video['Video ID']}`}
+            title={video['Video Title'] || 'Video'}
+            allowFullScreen
+          />
+        </figure>
         <div className="card-body p-4">
           <h3 className="font-medium text-sm">
             {video['Video Title'] || 'Video'}
           </h3>
-          <div className="text-xs text-base-content/60 mt-2">
-            Asset ID: {video['Asset ID']}
-        </div>
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-base-content/60">
+              Asset ID: {video['Asset ID']}
+            </span>
+            <div className="flex items-center gap-2">
+              {getPerformanceIcon(video['Performance Label'])}
+              {isPaused ? (
+                <button
+                  className="btn btn-sm btn-success"
+                  onClick={() => handleResumeVideo(video['Asset ID'])}
+                >
+                  Resume
+                </button>
+              ) : (
+                <button
+                  className="btn btn-sm btn-warning"
+                  onClick={() => handlePauseVideo(video['Asset ID'])}
+                >
+                  Pause
+                </button>
+              )}
+            </div>
+          </div>
+          {isPaused && (
+            <div className="badge badge-warning badge-sm mt-2">PAUSED</div>
+          )}
         </div>
       </div>
     );
@@ -1271,117 +1304,9 @@ const AssetGroupDetail = ({ assetGroup }) => {
         </div>
       )}
 
-      {/* Videos Section */}
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="card-title">Videos</h2>
-            <button 
-              className="btn btn-primary btn-sm"
-              onClick={() => setShowVideoLibrary(true)}
-            >
-              Add from Library
-            </button>
-          </div>
-          
-          {filteredVideos && filteredVideos.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredVideos.map((video, index) => (
-                renderVideoThumbnail(video, index)
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 italic">No videos available</p>
-          )}
-        </div>
-      </div>
 
-      {/* Landing Page URL Section */}
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="card-title">Landing Page URL</h2>
-            <button 
-              className="btn btn-primary btn-sm"
-              onClick={() => setShowAddLandingPageForm(!showAddLandingPageForm)}
-            >
-              Add URL
-            </button>
-          </div>
 
-          {/* Add Landing Page Form */}
-          {showAddLandingPageForm && (
-            <div className="mb-6 p-4 bg-base-200 rounded-lg">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">New Landing Page URL</span>
-                </label>
-                <input
-                  type="url"
-                  className="input input-bordered w-full"
-                  placeholder="https://example.com"
-                  value={newLandingPage}
-                  onChange={(e) => setNewLandingPage(e.target.value)}
-                />
-                <div className="flex gap-2 mt-3">
-                  <button 
-                    className="btn btn-primary btn-sm"
-                    onClick={handleAddLandingPage}
-                    disabled={!newLandingPage.trim()}
-                  >
-                    Add URL
-                  </button>
-                  <button 
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      setShowAddLandingPageForm(false);
-                      setNewLandingPage('');
-                    }}
-                  >
-                    Cancel
-                  </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-          <div className="space-y-3">
-            {/* Current Landing Page */}
-            {assetGroup.finalUrl && (
-              <div className="p-3 bg-base-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <a 
-                    href={assetGroup.finalUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="link link-primary flex-1"
-                  >
-                    {assetGroup.finalUrl}
-                  </a>
-                  <span className="badge badge-sm badge-success">Current</span>
-                </div>
-              </div>
-            )}
-
-            {/* Pending Landing Pages (Light Gray) */}
-            {pendingLandingPages.map((landingPage, index) => (
-              <div key={`pending-landing-${index}`} className="p-3 bg-gray-300 border-2 border-dashed border-gray-400 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 flex-1">{landingPage['Final URL']}</span>
-                  <span className="badge badge-sm badge-warning">PENDING</span>
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Created: {new Date(landingPage.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-            ))}
-
-            {!assetGroup.finalUrl && pendingLandingPages.length === 0 && (
-              <p className="text-gray-500 italic">No landing page URL available</p>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Call to Actions Section */}
       {assetGroup.callToActions && assetGroup.callToActions.length > 0 && (
