@@ -41,7 +41,7 @@ export default function Layout({ children }) {
                               : 'text-gray-600 hover:text-blue-600'
                           }`}
                         >
-                          Client Dashboard
+                          Performance Max Dashboard
                         </Link>
                         <Link
                           href="/client/create-ad"
@@ -51,7 +51,7 @@ export default function Layout({ children }) {
                               : 'text-gray-600 hover:text-blue-600'
                           }`}
                         >
-                          Create Ad
+                          Create Performance Max Ad
                         </Link>
                       </>
                     ) : (
@@ -64,7 +64,7 @@ export default function Layout({ children }) {
                               : 'text-gray-600 hover:text-blue-600'
                           }`}
                         >
-                          Client Dashboard
+                          Performance Max Dashboard
                         </Link>
                         <Link
                           href="/client/create-ad"
@@ -74,7 +74,7 @@ export default function Layout({ children }) {
                               : 'text-gray-600 hover:text-blue-600'
                           }`}
                         >
-                          Create Ad
+                          Create Performance Max Ad
                         </Link>
                       </>
                     )}
