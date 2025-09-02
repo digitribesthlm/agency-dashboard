@@ -330,8 +330,72 @@ const AssetGroupDetail = ({ assetGroup }) => {
       try {
         console.log('Fetching data for asset group:', assetGroup.assetGroupId);
         
-        // Temporarily disable all API calls to isolate the issue
-        console.log('API calls temporarily disabled for debugging');
+        // Fetch changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          console.log('Fetched changes data:', changesData);
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
+        
+        // Fetch pending headlines
+        const headlinesResponse = await fetch(`/api/headlines?assetGroupId=${assetGroup.assetGroupId}`);
+        if (headlinesResponse.ok) {
+          const headlinesData = await headlinesResponse.json();
+          if (headlinesData.success) {
+            setPendingHeadlines(headlinesData.data);
+          }
+        }
+        
+        // Fetch pending descriptions
+        const descriptionsResponse = await fetch(`/api/descriptions?assetGroupId=${assetGroup.assetGroupId}`);
+        if (descriptionsResponse.ok) {
+          const descriptionsData = await descriptionsResponse.json();
+          if (descriptionsData.success) {
+            setPendingDescriptions(descriptionsData.data);
+          }
+        }
+        
+        // Fetch pending landing pages
+        const landingPagesResponse = await fetch(`/api/landing-pages?assetGroupId=${assetGroup.assetGroupId}`);
+        if (landingPagesResponse.ok) {
+          const landingPagesData = await landingPagesResponse.json();
+          if (landingPagesData.success) {
+            setPendingLandingPages(landingPagesData.data);
+          }
+        }
+        
+        // Fetch available images for library
+        const imagesResponse = await fetch('/api/images?all=true');
+        if (imagesResponse.ok) {
+          const imagesData = await imagesResponse.json();
+          if (imagesData.success) {
+            setAvailableImages(imagesData.data);
+          }
+        }
+        
+        // Fetch available videos for library
+        const videosResponse = await fetch('/api/videos?all=true');
+        if (videosResponse.ok) {
+          const videosData = await videosResponse.json();
+          if (videosData.success) {
+            setAvailableVideos(videosData.data);
+          }
+        }
+        
+        // Fetch current paused status for all asset types
+        const statusResponse = await fetch(`/api/asset-status?assetGroupId=${assetGroup.assetGroupId}`);
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          if (statusData.success) {
+            setPausedHeadlines(statusData.data.pausedHeadlines || []);
+            setPausedDescriptions(statusData.data.pausedDescriptions || []);
+            setPausedImages(statusData.data.pausedImages || []);
+            setPausedVideos(statusData.data.pausedVideos || []);
+          }
+        }
         
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -393,6 +457,15 @@ const AssetGroupDetail = ({ assetGroup }) => {
             setPendingHeadlines(headlinesData.data);
           }
         }
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
       } else {
         console.error('Failed to add headline');
       }
@@ -438,6 +511,15 @@ const AssetGroupDetail = ({ assetGroup }) => {
         setPendingLandingPages(prev => [...prev, newLandingPageData]);
         setNewLandingPage('');
         setShowAddLandingPageForm(false);
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
       } else {
         console.error('Failed to add landing page');
       }
