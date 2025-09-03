@@ -263,9 +263,45 @@ const CampaignsList = ({ campaigns, onSelect }) => {
   );
 };
 
-const AssetGroupsList = ({ assetGroups, onSelect }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {assetGroups.map((group) => {
+const AssetGroupsList = ({ assetGroups, onSelect }) => {
+  const [showRemoved, setShowRemoved] = useState(false);
+  
+  // Filter out REMOVED asset groups unless showRemoved is true
+  const displayAssetGroups = showRemoved 
+    ? assetGroups 
+    : assetGroups.filter(group => group.assetGroupStatus !== 'REMOVED');
+
+  const removedCount = assetGroups.filter(group => group.assetGroupStatus === 'REMOVED').length;
+
+  return (
+    <div>
+      {/* Filter Controls */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">
+          Asset Groups ({displayAssetGroups.length})
+        </h2>
+        <div className="flex items-center gap-3">
+          {removedCount > 0 && (
+            <span className="text-sm text-base-content/60">
+              {removedCount} removed
+            </span>
+          )}
+          <div className="form-control">
+            <label className="label cursor-pointer gap-2">
+              <span className="label-text">Show Removed</span>
+              <input 
+                type="checkbox" 
+                className="toggle toggle-primary" 
+                checked={showRemoved}
+                onChange={(e) => setShowRemoved(e.target.checked)}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {displayAssetGroups.map((group) => {
       const firstImage = group.images[0];
       const firstHeadline = group.headlines[0]?.['Text Content'] || 'No headline';
       const firstDescription = group.descriptions[0]?.['Text Content'] || 'No description';
@@ -282,6 +318,8 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => (
               <span className={`badge ${
                 group.assetGroupStatus === 'ENABLED' 
                   ? 'badge-success' 
+                  : group.assetGroupStatus === 'REMOVED'
+                  ? 'badge-neutral'
                   : 'badge-error'
               }`}>
                 {group.assetGroupStatus}
@@ -351,8 +389,10 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => (
         </div>
       );
     })}
-  </div>
-);
+      </div>
+    </div>
+  );
+};
 
 const AssetGroupDetail = ({ assetGroup }) => {
   const { data: session } = useSession();
