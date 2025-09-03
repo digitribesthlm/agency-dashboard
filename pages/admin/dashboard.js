@@ -303,7 +303,9 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {displayAssetGroups.map((group) => {
       const firstImage = group.images[0];
-      const firstHeadline = group.headlines[0]?.['Text Content'] || 'No headline';
+      const firstHeadline = group.shortHeadlines?.[0]?.['Text Content'] || 
+                           group.longHeadlines?.[0]?.['Text Content'] || 
+                           'No headline';
       const firstDescription = group.descriptions[0]?.['Text Content'] || 'No description';
       const firstVideo = group.videos[0];
 
@@ -362,7 +364,7 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
                 </svg>
-                {group.headlines.length}
+                {(group.shortHeadlines?.length || 0) + (group.longHeadlines?.length || 0)}
               </div>
               <div className="flex items-center gap-1 tooltip" data-tip="Images">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

@@ -58,6 +58,7 @@ export default async function handler(req, res) {
         acc[campaignId].assetGroups[assetGroupId] = {
           assetGroupName: asset['Asset Group Name'],
           assetGroupId: assetGroupId,
+          campaignId: campaignId,
           assetGroupStatus: asset['Asset Group Status'],
           headlines: [],
           shortHeadlines: [],
@@ -72,32 +73,58 @@ export default async function handler(req, res) {
 
       const group = acc[campaignId].assetGroups[assetGroupId];
 
-      // Categorize asset
+      // Categorize asset with deduplication within the asset group
       if (assetWithPerformance['Asset Type'] === 'TEXT') {
         if (assetWithPerformance['Field Type'] === 'HEADLINE') {
           // Short headlines (HEADLINE field type)
           if (!group.shortHeadlines) group.shortHeadlines = [];
-          group.shortHeadlines.push(assetWithPerformance);
-          // Keep the original headlines array for backward compatibility
-          group.headlines.push(assetWithPerformance);
+          // Check if this exact asset already exists in this asset group
+          const headlineExists = group.shortHeadlines.some(h => 
+            h['Asset ID'] === assetWithPerformance['Asset ID']
+          );
+          if (!headlineExists) {
+            group.shortHeadlines.push(assetWithPerformance);
+          }
         } else if (assetWithPerformance['Field Type'] === 'LONG_HEADLINE') {
           // Long headlines (LONG_HEADLINE field type)
           if (!group.longHeadlines) group.longHeadlines = [];
-          group.longHeadlines.push(assetWithPerformance);
-          // Also add to headlines array for backward compatibility
-          group.headlines.push(assetWithPerformance);
+          // Check if this exact asset already exists in this asset group
+          const longHeadlineExists = group.longHeadlines.some(h => 
+            h['Asset ID'] === assetWithPerformance['Asset ID']
+          );
+          if (!longHeadlineExists) {
+            group.longHeadlines.push(assetWithPerformance);
+          }
         } else if (assetWithPerformance['Field Type'] === 'DESCRIPTION') {
-          group.descriptions.push(assetWithPerformance);
+          // Check if this exact asset already exists in this asset group
+          const descriptionExists = group.descriptions.some(d => 
+            d['Asset ID'] === assetWithPerformance['Asset ID']
+          );
+          if (!descriptionExists) {
+            group.descriptions.push(assetWithPerformance);
+          }
         } else if (assetWithPerformance['Text Content'] === 'Watch Video') {
-          group.callToActions.push(assetWithPerformance);
+          // Check if this exact asset already exists in this asset group
+          const ctaExists = group.callToActions.some(c => 
+            c['Asset ID'] === assetWithPerformance['Asset ID']
+          );
+          if (!ctaExists) {
+            group.callToActions.push(assetWithPerformance);
+          }
         }
       } else if (assetWithPerformance['Asset Type'] === 'IMAGE') {
-        group.images.push(assetWithPerformance);
+        // Check if this exact asset already exists in this asset group
+        const imageExists = group.images.some(i => 
+          i['Asset ID'] === assetWithPerformance['Asset ID']
+        );
+        if (!imageExists) {
+          group.images.push(assetWithPerformance);
+        }
       } else if (assetWithPerformance['Asset Type'] === 'VIDEO' || assetWithPerformance['Video ID']) {
         // Check if video already exists to prevent duplicates
         const videoExists = group.videos.some(v => 
-          v['Video ID'] === assetWithPerformance['Video ID'] || 
-          v['Video Title'] === assetWithPerformance['Video Title']
+          v['Asset ID'] === assetWithPerformance['Asset ID'] ||
+          (v['Video ID'] === assetWithPerformance['Video ID'] && assetWithPerformance['Video ID'])
         );
         if (!videoExists && (assetWithPerformance['Video ID'] || assetWithPerformance['Video Title'])) {
           group.videos.push(assetWithPerformance);

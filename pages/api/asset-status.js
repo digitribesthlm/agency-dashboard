@@ -87,28 +87,34 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const { assetGroupId, assetType } = req.query;
+      const { assetGroupId, assetType, campaignId } = req.query;
       const { db } = await connectToDatabase();
 
       let query = { assetGroupId: Number(assetGroupId) };
       if (assetType) query.assetType = assetType;
+      if (campaignId) query.campaignId = campaignId;
 
-      // Get status changes for the specific asset group
+      // Get status changes for the specific asset group and campaign combination
       const statusChanges = await db.collection('asset_status_changes')
         .find(query)
         .sort({ changedAt: -1 })
         .toArray();
 
       // Also get changes from asset_changes collection for pause/resume actions
+      // Filter by both assetGroupId and campaignId to ensure we only get changes for this specific combination
+      const assetChangesQuery = {
+        assetGroupId: Number(assetGroupId),
+        action: { $in: ['pause', 'resume'] }
+      };
+      if (campaignId) assetChangesQuery.campaignId = campaignId;
+
       const assetChanges = await db.collection('asset_changes')
-        .find({
-          assetGroupId: Number(assetGroupId),
-          action: { $in: ['pause', 'resume'] }
-        })
+        .find(assetChangesQuery)
         .sort({ changedAt: -1 })
         .toArray();
 
       // Process the changes to determine current status
+      // Use a Map to track status by assetId for this specific assetGroupId + campaignId combination
       const pausedAssets = {
         headlines: new Set(),
         descriptions: new Set(),
@@ -117,26 +123,32 @@ export default async function handler(req, res) {
       };
 
       // Process asset_changes to determine current paused status
+      // Only consider changes that match the current assetGroupId and campaignId
       assetChanges.forEach(change => {
-        if (change.action === 'pause') {
-          if (change.assetType === 'headline') {
-            pausedAssets.headlines.add(change.assetId);
-          } else if (change.assetType === 'description') {
-            pausedAssets.descriptions.add(change.assetId);
-          } else if (change.assetType === 'image') {
-            pausedAssets.images.add(change.assetId);
-          } else if (change.assetType === 'video') {
-            pausedAssets.videos.add(change.assetId);
-          }
-        } else if (change.action === 'resume') {
-          if (change.assetType === 'headline') {
-            pausedAssets.headlines.delete(change.assetId);
-          } else if (change.assetType === 'description') {
-            pausedAssets.descriptions.delete(change.assetId);
-          } else if (change.assetType === 'image') {
-            pausedAssets.images.delete(change.assetId);
-          } else if (change.assetType === 'video') {
-            pausedAssets.videos.delete(change.assetId);
+        // Double-check that this change is for the current asset group and campaign
+        if (change.assetGroupId === Number(assetGroupId) && 
+            (!campaignId || change.campaignId === campaignId)) {
+          
+          if (change.action === 'pause') {
+            if (change.assetType === 'headline') {
+              pausedAssets.headlines.add(change.assetId);
+            } else if (change.assetType === 'description') {
+              pausedAssets.descriptions.add(change.assetId);
+            } else if (change.assetType === 'image') {
+              pausedAssets.images.add(change.assetId);
+            } else if (change.assetType === 'video') {
+              pausedAssets.videos.add(change.assetId);
+            }
+          } else if (change.action === 'resume') {
+            if (change.assetType === 'headline') {
+              pausedAssets.headlines.delete(change.assetId);
+            } else if (change.assetType === 'description') {
+              pausedAssets.descriptions.delete(change.assetId);
+            } else if (change.assetType === 'image') {
+              pausedAssets.images.delete(change.assetId);
+            } else if (change.assetType === 'video') {
+              pausedAssets.videos.delete(change.assetId);
+            }
           }
         }
       });

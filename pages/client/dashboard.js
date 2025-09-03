@@ -318,14 +318,18 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
 
             {/* Ad Content */}
             <div className="space-y-3 flex-1">
-              <h2 className="text-xl font-bold line-clamp-2">{group.headlines[0]?.['Text Content'] || 'No headline'}</h2>
+              <h2 className="text-xl font-bold line-clamp-2">
+                {group.shortHeadlines?.[0]?.['Text Content'] || 
+                 group.longHeadlines?.[0]?.['Text Content'] || 
+                 'No headline'}
+              </h2>
               <p className="text-sm text-base-content/70 line-clamp-3">{group.descriptions[0]?.['Text Content'] || 'No description'}</p>
             </div>
 
             {/* Asset Counts */}
             <div className="flex items-center gap-2 mt-4 text-sm text-base-content/60">
               <span>—</span>
-              <span>{group.headlines.length}</span>
+              <span>{(group.shortHeadlines?.length || 0) + (group.longHeadlines?.length || 0)}</span>
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
               </svg>
@@ -445,7 +449,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
         }
         
         // Fetch current paused status for all asset types
-        const statusResponse = await fetch(`/api/asset-status?assetGroupId=${assetGroup.assetGroupId}`);
+        const statusResponse = await fetch(`/api/asset-status?assetGroupId=${assetGroup.assetGroupId}&campaignId=${campaign.campaignId}`);
         if (statusResponse.ok) {
           const statusData = await statusResponse.json();
           if (statusData.success) {
