@@ -14,14 +14,16 @@ export default async function handler(req, res) {
       .find({ 'Account ID': Number(accountId) })
       .toArray();
 
-    // Get performance data
+    // Get performance data from PMax_Assets_Performance collection
     const performance = await db.collection('PMax_Assets_Performance')
       .find({ 'Account ID': Number(accountId) })
       .toArray();
 
     // Create a map of performance data by Asset ID
     const performanceMap = performance.reduce((acc, perf) => {
-      acc[perf['Asset ID']] = perf['Performance Label'];
+      // Normalize Asset ID to string for consistent comparison
+      const assetId = String(perf['Asset ID']);
+      acc[assetId] = perf['Performance Label'];
       return acc;
     }, {});
 
@@ -31,9 +33,14 @@ export default async function handler(req, res) {
       const assetGroupId = asset['Asset Group ID'];
       
       // Add performance label to asset
+      const assetIdStr = String(asset['Asset ID']);
+      // Use performance data from PMax_Assets_Performance collection if available,
+      // otherwise fall back to the existing Performance Max Label in the main collection
+      const performanceLabel = performanceMap[assetIdStr] || asset['Performance Max Label'] || 'UNKNOWN';
+      
       const assetWithPerformance = {
         ...asset,
-        'Performance Label': performanceMap[asset['Asset ID']] || 'UNKNOWN'
+        'Performance Label': performanceLabel
       };
 
       // Initialize campaign if it doesn't exist
