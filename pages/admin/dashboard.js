@@ -583,7 +583,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span className="badge badge-primary">Short Headlines</span>
-                <span className="text-sm text-base-content/60">(≤30 characters)</span>
+                <span className="text-sm text-base-content/60">(HEADLINE field type)</span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {assetGroup.shortHeadlines.map((headline, index) => (
@@ -631,7 +631,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span className="badge badge-secondary">Long Headlines</span>
-                <span className="text-sm text-base-content/60">(&gt;30 characters)</span>
+                <span className="text-sm text-base-content/60">(LONG_HEADLINE field type)</span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {assetGroup.longHeadlines.map((headline, index) => (

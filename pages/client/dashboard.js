@@ -313,7 +313,9 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
 
 const AssetGroupDetail = ({ assetGroup }) => {
   const [newHeadline, setNewHeadline] = useState('');
+  const [newLongHeadline, setNewLongHeadline] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddLongHeadlineForm, setShowAddLongHeadlineForm] = useState(false);
   const [newDescription, setNewDescription] = useState('');
   const [showAddDescriptionForm, setShowAddDescriptionForm] = useState(false);
   const [newLandingPage, setNewLandingPage] = useState('');
@@ -490,6 +492,74 @@ const AssetGroupDetail = ({ assetGroup }) => {
       }
     } catch (error) {
       console.error('Error adding headline:', error);
+    }
+  };
+
+  const handleAddLongHeadline = async () => {
+    if (!newLongHeadline.trim()) return;
+    
+    console.log('Adding long headline with assetGroup:', assetGroup);
+    
+    try {
+      const response = await fetch('/api/headlines', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: newLongHeadline.trim(),
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId || 'unknown',
+          accountId: assetGroup.accountId || 1,
+          fieldType: 'LONG_HEADLINE'
+        }),
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        
+        // Add the new long headline to the pending headlines state immediately
+        const newLongHeadlineData = {
+          'Asset ID': responseData.data.assetId,
+          'Text Content': newLongHeadline.trim(),
+          'Asset Type': 'TEXT',
+          'Field Type': 'LONG_HEADLINE',
+          'Performance Label': 'PENDING',
+          'Campaign ID': assetGroup.campaignId || 'unknown',
+          'Asset Group ID': assetGroup.assetGroupId,
+          'Account ID': assetGroup.accountId || 1,
+          'isPending': true,
+          'createdBy': 'current_user',
+          'createdAt': new Date(),
+          'approved': false
+        };
+        
+        setPendingHeadlines(prev => [...prev, newLongHeadlineData]);
+        setNewLongHeadline('');
+        setShowAddLongHeadlineForm(false);
+        
+        // Refresh from server
+        const headlinesResponse = await fetch(`/api/headlines?assetGroupId=${assetGroup.assetGroupId}`);
+        if (headlinesResponse.ok) {
+          const headlinesData = await headlinesResponse.json();
+          if (headlinesData.success) {
+            setPendingHeadlines(headlinesData.data);
+          }
+        }
+        
+        // Refresh changes history
+        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+        if (changesResponse.ok) {
+          const changesData = await changesResponse.json();
+          if (changesData.success) {
+            setChangesHistory(changesData.data);
+          }
+        }
+      } else {
+        console.error('Failed to add long headline');
+      }
+    } catch (error) {
+      console.error('Error adding long headline:', error);
     }
   };
 
@@ -949,39 +1019,47 @@ const AssetGroupDetail = ({ assetGroup }) => {
         <div className="card-body">
           <div className="flex justify-between items-center mb-4">
             <h2 className="card-title">Headlines</h2>
-            <button 
-              className="btn btn-primary btn-sm"
-              onClick={() => setShowAddForm(!showAddForm)}
-            >
-              Add Headline
-            </button>
+            <div className="flex gap-2">
+              <button 
+                className="btn btn-primary btn-sm"
+                onClick={() => setShowAddForm(!showAddForm)}
+              >
+                Add Short Headline
+              </button>
+              <button 
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowAddLongHeadlineForm(!showAddLongHeadlineForm)}
+              >
+                Add Long Headline
+              </button>
+            </div>
           </div>
 
-          {/* Add Headline Form */}
+          {/* Add Short Headline Form */}
           {showAddForm && (
             <div className="mb-6 p-4 bg-base-200 rounded-lg">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">New Headline</span>
+                  <span className="label-text">New Short Headline</span>
                 </label>
                 <textarea
                   className="textarea textarea-bordered w-full"
-                  placeholder="Enter your headline text..."
+                  placeholder="Enter your short headline text (≤30 characters)..."
                   value={newHeadline}
                   onChange={(e) => setNewHeadline(e.target.value)}
+                  maxLength={30}
                   rows={2}
                 />
                 <div className="text-xs text-base-content/60 mt-1">
-                  Character count: {newHeadline.length} 
-                  {newHeadline.length <= 30 ? ' (Short Headline)' : ' (Long Headline)'}
+                  Character count: {newHeadline.length} / 30
                 </div>
                 <div className="flex gap-2 mt-3">
                   <button 
                     className="btn btn-primary btn-sm"
                     onClick={handleAddHeadline}
-                    disabled={!newHeadline.trim()}
+                    disabled={!newHeadline.trim() || newHeadline.length > 30}
                   >
-                    Add Headline
+                    Add Short Headline
                   </button>
                   <button 
                     className="btn btn-ghost btn-sm"
@@ -997,12 +1075,52 @@ const AssetGroupDetail = ({ assetGroup }) => {
             </div>
           )}
 
+          {/* Add Long Headline Form */}
+          {showAddLongHeadlineForm && (
+            <div className="mb-6 p-4 bg-base-200 rounded-lg">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">New Long Headline</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered w-full"
+                  placeholder="Enter your long headline text (>30 characters)..."
+                  value={newLongHeadline}
+                  onChange={(e) => setNewLongHeadline(e.target.value)}
+                  maxLength={90}
+                  rows={3}
+                />
+                <div className="text-xs text-base-content/60 mt-1">
+                  Character count: {newLongHeadline.length} / 90
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button 
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleAddLongHeadline}
+                    disabled={!newLongHeadline.trim() || newLongHeadline.length > 90}
+                  >
+                    Add Long Headline
+                  </button>
+                  <button 
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setShowAddLongHeadlineForm(false);
+                      setNewLongHeadline('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Short Headlines */}
           {assetGroup.shortHeadlines && assetGroup.shortHeadlines.length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span className="badge badge-primary">Short Headlines</span>
-                <span className="text-sm text-base-content/60">(≤30 characters)</span>
+                <span className="text-sm text-base-content/60">(HEADLINE field type)</span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {assetGroup.shortHeadlines.map((headline, index) => (
@@ -1047,7 +1165,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span className="badge badge-secondary">Long Headlines</span>
-                <span className="text-sm text-base-content/60">(&gt;30 characters)</span>
+                <span className="text-sm text-base-content/60">(LONG_HEADLINE field type)</span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {assetGroup.longHeadlines.map((headline, index) => (
