@@ -185,9 +185,26 @@ export default function ClientDashboard() {
 }
 
 // Split into smaller components for better performance
-const CampaignsList = ({ campaigns, onSelect }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {campaigns.map((campaign) => (
+const CampaignsList = ({ campaigns, onSelect }) => {
+  // Filter out DRAFT campaigns
+  const filteredCampaigns = campaigns.filter(campaign => 
+    campaign.campaignStatus !== 'DRAFT'
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {filteredCampaigns.length === 0 ? (
+        <div className="col-span-full text-center py-12">
+          <div className="text-base-content/60">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <h3 className="text-lg font-medium mb-2">No Active Campaigns</h3>
+            <p className="text-sm">All campaigns are currently in draft mode or no campaigns exist.</p>
+          </div>
+        </div>
+      ) : (
+        filteredCampaigns.map((campaign) => (
       <div 
         key={campaign.campaignId}
         onClick={() => onSelect(campaign)}
@@ -240,9 +257,11 @@ const CampaignsList = ({ campaigns, onSelect }) => (
           </div>
         </div>
       </div>
-    ))}
-  </div>
-);
+    ))
+      )}
+    </div>
+  );
+};
 
 const AssetGroupsList = ({ assetGroups, onSelect }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

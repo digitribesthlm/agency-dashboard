@@ -22,11 +22,13 @@ export default async function handler(req, res) {
           'Asset Type': 'VIDEO'
         }).toArray();
         
-        // Combine and deduplicate
+        // Combine and deduplicate (fallback to Video ID when Asset ID is missing)
         const allVideos = [...pendingVideos, ...pmaxVideos];
-        const uniqueVideos = allVideos.filter((video, index, self) => 
-          index === self.findIndex(vid => vid['Asset ID'] === video['Asset ID'])
-        );
+        const uniqueVideos = allVideos.filter((video, index, self) => {
+          const getKey = (v) => v['Asset ID'] || v['Video ID'] || v.videoId || `${v['Campaign ID']}-${v['Video Title']}`;
+          const key = getKey(video);
+          return index === self.findIndex((vid) => getKey(vid) === key);
+        });
         
         return res.status(200).json({ 
           success: true, 
