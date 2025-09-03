@@ -763,6 +763,64 @@ const AssetGroupDetail = ({ assetGroup }) => {
     }
   };
 
+  const handleRemoveHeadline = async (headlineId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'remove',
+          assetType: 'headline',
+          assetId: headlineId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        // Remove from paused list if it was paused
+        setPausedHeadlines(prev => prev.filter(id => id !== headlineId));
+        // Note: The asset will be filtered out by the API on next refresh
+      } else {
+        console.error('Failed to remove headline');
+      }
+    } catch (error) {
+      console.error('Error removing headline:', error);
+    }
+  };
+
+  const handleRemoveDescription = async (descriptionId) => {
+    try {
+      const response = await fetch('/api/asset-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'remove',
+          assetType: 'description',
+          assetId: descriptionId,
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        }),
+      });
+
+      if (response.ok) {
+        // Remove from paused list if it was paused
+        setPausedDescriptions(prev => prev.filter(id => id !== descriptionId));
+        // Note: The asset will be filtered out by the API on next refresh
+      } else {
+        console.error('Failed to remove description');
+      }
+    } catch (error) {
+      console.error('Error removing description:', error);
+    }
+  };
+
   const handlePauseImage = async (imageId) => {
     try {
       const response = await fetch('/api/asset-status', {
@@ -1168,21 +1226,32 @@ const AssetGroupDetail = ({ assetGroup }) => {
                         <p className="flex-1">{headline['Text Content']}</p>
                         <div className="flex items-center gap-2">
                           {getPerformanceIcon(headline['Performance Label'])}
-                          {pausedHeadlines.includes(headline['Asset ID']) ? (
+                          <div className="flex gap-1">
+                            {pausedHeadlines.includes(headline['Asset ID']) ? (
+                              <button
+                                className="btn btn-sm btn-success"
+                                onClick={() => handleResumeHeadline(headline['Asset ID'])}
+                              >
+                                Resume
+                              </button>
+                            ) : (
+                              <button
+                                className="btn btn-sm btn-warning"
+                                onClick={() => handlePauseHeadline(headline['Asset ID'])}
+                              >
+                                Pause
+                              </button>
+                            )}
                             <button
-                              className="btn btn-sm btn-success"
-                              onClick={() => handleResumeHeadline(headline['Asset ID'])}
+                              className="btn btn-sm btn-error"
+                              onClick={() => handleRemoveHeadline(headline['Asset ID'])}
+                              title="Remove headline"
                             >
-                              Resume
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                             </button>
-                          ) : (
-                            <button
-                              className="btn btn-sm btn-warning"
-                              onClick={() => handlePauseHeadline(headline['Asset ID'])}
-                            >
-                              Pause
-                            </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                       <div className="text-xs text-base-content/60 mt-2">
@@ -1213,21 +1282,32 @@ const AssetGroupDetail = ({ assetGroup }) => {
                         <p className="flex-1">{headline['Text Content']}</p>
                         <div className="flex items-center gap-2">
                           {getPerformanceIcon(headline['Performance Label'])}
-                          {pausedHeadlines.includes(headline['Asset ID']) ? (
+                          <div className="flex gap-1">
+                            {pausedHeadlines.includes(headline['Asset ID']) ? (
+                              <button
+                                className="btn btn-sm btn-success"
+                                onClick={() => handleResumeHeadline(headline['Asset ID'])}
+                              >
+                                Resume
+                              </button>
+                            ) : (
+                              <button
+                                className="btn btn-sm btn-warning"
+                                onClick={() => handlePauseHeadline(headline['Asset ID'])}
+                              >
+                                Pause
+                              </button>
+                            )}
                             <button
-                              className="btn btn-sm btn-success"
-                              onClick={() => handleResumeHeadline(headline['Asset ID'])}
+                              className="btn btn-sm btn-error"
+                              onClick={() => handleRemoveHeadline(headline['Asset ID'])}
+                              title="Remove headline"
                             >
-                              Resume
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                             </button>
-                          ) : (
-                            <button
-                              className="btn btn-sm btn-warning"
-                              onClick={() => handlePauseHeadline(headline['Asset ID'])}
-                            >
-                              Pause
-                            </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                       <div className="text-xs text-base-content/60 mt-2">
@@ -1345,21 +1425,32 @@ const AssetGroupDetail = ({ assetGroup }) => {
                     <p className="flex-1">{desc['Text Content']}</p>
                     <div className="flex items-center gap-2">
                     {getPerformanceIcon(desc['Performance Label'])}
-                      {pausedDescriptions.includes(desc['Asset ID']) ? (
+                      <div className="flex gap-1">
+                        {pausedDescriptions.includes(desc['Asset ID']) ? (
+                          <button
+                            className="btn btn-sm btn-success"
+                            onClick={() => handleResumeDescription(desc['Asset ID'])}
+                          >
+                            Resume
+                          </button>
+                        ) : (
+                          <button
+                            className="btn btn-sm btn-warning"
+                            onClick={() => handlePauseDescription(desc['Asset ID'])}
+                          >
+                            Pause
+                          </button>
+                        )}
                         <button
-                          className="btn btn-sm btn-success"
-                          onClick={() => handleResumeDescription(desc['Asset ID'])}
+                          className="btn btn-sm btn-error"
+                          onClick={() => handleRemoveDescription(desc['Asset ID'])}
+                          title="Remove description"
                         >
-                          Resume
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                         </button>
-                      ) : (
-                        <button
-                          className="btn btn-sm btn-warning"
-                          onClick={() => handlePauseDescription(desc['Asset ID'])}
-                        >
-                          Pause
-                        </button>
-                      )}
+                      </div>
                     </div>
                   </div>
                   <div className="text-xs text-base-content/60 mt-2">
