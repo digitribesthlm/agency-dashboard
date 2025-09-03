@@ -948,7 +948,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="flex justify-between items-center mb-4">
-          <h2 className="card-title">Headlines</h2>
+            <h2 className="card-title">Headlines</h2>
             <button 
               className="btn btn-primary btn-sm"
               onClick={() => setShowAddForm(!showAddForm)}
@@ -971,6 +971,10 @@ const AssetGroupDetail = ({ assetGroup }) => {
                   onChange={(e) => setNewHeadline(e.target.value)}
                   rows={2}
                 />
+                <div className="text-xs text-base-content/60 mt-1">
+                  Character count: {newHeadline.length} 
+                  {newHeadline.length <= 30 ? ' (Short Headline)' : ' (Long Headline)'}
+                </div>
                 <div className="flex gap-2 mt-3">
                   <button 
                     className="btn btn-primary btn-sm"
@@ -993,69 +997,134 @@ const AssetGroupDetail = ({ assetGroup }) => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Approved Headlines */}
-            {filteredHeadlines.map((headline, index) => (
-              <div key={index} className="card bg-base-200">
-                <div className="card-body p-4">
-                  <div className="flex justify-between items-start gap-2">
-                    <p className="flex-1">{headline['Text Content']}</p>
-                    <div className="flex items-center gap-2">
-                    {getPerformanceIcon(headline['Performance Label'])}
-                      {pausedHeadlines.includes(headline['Asset ID']) ? (
-                        <button
-                          className="btn btn-sm btn-success"
-                          onClick={() => handleResumeHeadline(headline['Asset ID'])}
-                        >
-                          Resume
-                        </button>
-                      ) : (
-                        <button
-                          className="btn btn-sm btn-warning"
-                          onClick={() => handlePauseHeadline(headline['Asset ID'])}
-                        >
-                          Pause
-                        </button>
-                      )}
+          {/* Short Headlines */}
+          {assetGroup.shortHeadlines && assetGroup.shortHeadlines.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="badge badge-primary">Short Headlines</span>
+                <span className="text-sm text-base-content/60">(≤30 characters)</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {assetGroup.shortHeadlines.map((headline, index) => (
+                  <div key={index} className="card bg-base-200">
+                    <div className="card-body p-4">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="flex-1">{headline['Text Content']}</p>
+                        <div className="flex items-center gap-2">
+                          {getPerformanceIcon(headline['Performance Label'])}
+                          {pausedHeadlines.includes(headline['Asset ID']) ? (
+                            <button
+                              className="btn btn-sm btn-success"
+                              onClick={() => handleResumeHeadline(headline['Asset ID'])}
+                            >
+                              Resume
+                            </button>
+                          ) : (
+                            <button
+                              className="btn btn-sm btn-warning"
+                              onClick={() => handlePauseHeadline(headline['Asset ID'])}
+                            >
+                              Pause
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs text-base-content/60 mt-2">
+                        Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars
+                        {pausedHeadlines.includes(headline['Asset ID']) && (
+                          <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-xs text-base-content/60 mt-2">
-                    Asset ID: {headline['Asset ID']}
-                    {pausedHeadlines.includes(headline['Asset ID']) && (
-                      <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
+          )}
 
-            {/* Pending Headlines (Light Gray) */}
-            {pendingHeadlines.map((headline, index) => (
-              <div key={`pending-${index}`} className="card bg-gray-300 border-2 border-dashed border-gray-400">
-                <div className="card-body p-4">
-                  <div className="flex justify-between items-start gap-2">
-                    <p className="flex-1 text-gray-600">{headline['Text Content']}</p>
-                    <div className="tooltip" data-tip="Pending Approval">
-                      <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                      </svg>
+          {/* Long Headlines */}
+          {assetGroup.longHeadlines && assetGroup.longHeadlines.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="badge badge-secondary">Long Headlines</span>
+                <span className="text-sm text-base-content/60">(&gt;30 characters)</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {assetGroup.longHeadlines.map((headline, index) => (
+                  <div key={index} className="card bg-base-200">
+                    <div className="card-body p-4">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="flex-1">{headline['Text Content']}</p>
+                        <div className="flex items-center gap-2">
+                          {getPerformanceIcon(headline['Performance Label'])}
+                          {pausedHeadlines.includes(headline['Asset ID']) ? (
+                            <button
+                              className="btn btn-sm btn-success"
+                              onClick={() => handleResumeHeadline(headline['Asset ID'])}
+                            >
+                              Resume
+                            </button>
+                          ) : (
+                            <button
+                              className="btn btn-sm btn-warning"
+                              onClick={() => handlePauseHeadline(headline['Asset ID'])}
+                            >
+                              Pause
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs text-base-content/60 mt-2">
+                        Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars
+                        {pausedHeadlines.includes(headline['Asset ID']) && (
+                          <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500 mt-2 flex items-center gap-2">
-                    <span>Asset ID: {headline['Asset ID']}</span>
-                    <span className="badge badge-sm badge-warning">PENDING</span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Created: {new Date(headline.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
+          )}
 
-            {filteredHeadlines.length === 0 && pendingHeadlines.length === 0 && (
-              <p className="text-gray-500 italic">No headlines available</p>
-            )}
-          </div>
+          {/* Pending Headlines */}
+          {pendingHeadlines.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="badge badge-warning">Pending Headlines</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pendingHeadlines.map((headline, index) => (
+                  <div key={`pending-${index}`} className="card bg-gray-300 border-2 border-dashed border-gray-400">
+                    <div className="card-body p-4">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="flex-1 text-gray-600">{headline['Text Content']}</p>
+                        <div className="tooltip" data-tip="Pending Approval">
+                          <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2 flex items-center gap-2">
+                        <span>Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars</span>
+                        <span className="badge badge-sm badge-warning">PENDING</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Created: {new Date(headline.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No headlines message */}
+          {(!assetGroup.shortHeadlines || assetGroup.shortHeadlines.length === 0) && 
+           (!assetGroup.longHeadlines || assetGroup.longHeadlines.length === 0) && 
+           pendingHeadlines.length === 0 && (
+            <p className="text-gray-500 italic">No headlines available</p>
+          )}
         </div>
       </div>
 

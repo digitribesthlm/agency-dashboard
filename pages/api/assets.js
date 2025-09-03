@@ -53,6 +53,8 @@ export default async function handler(req, res) {
           assetGroupId: assetGroupId,
           assetGroupStatus: asset['Asset Group Status'],
           headlines: [],
+          shortHeadlines: [],
+          longHeadlines: [],
           descriptions: [],
           images: [],
           videos: [],
@@ -66,6 +68,16 @@ export default async function handler(req, res) {
       // Categorize asset
       if (assetWithPerformance['Asset Type'] === 'TEXT') {
         if (assetWithPerformance['Field Type'] === 'HEADLINE') {
+          // Check if it's a long or short headline based on character count
+          const textLength = assetWithPerformance['Text Content']?.length || 0;
+          if (textLength <= 30) {
+            if (!group.shortHeadlines) group.shortHeadlines = [];
+            group.shortHeadlines.push(assetWithPerformance);
+          } else {
+            if (!group.longHeadlines) group.longHeadlines = [];
+            group.longHeadlines.push(assetWithPerformance);
+          }
+          // Keep the original headlines array for backward compatibility
           group.headlines.push(assetWithPerformance);
         } else if (assetWithPerformance['Field Type'] === 'DESCRIPTION') {
           group.descriptions.push(assetWithPerformance);

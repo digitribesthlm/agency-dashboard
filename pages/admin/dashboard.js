@@ -577,47 +577,108 @@ const AssetGroupDetail = ({ assetGroup }) => {
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title">Headlines</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {headlines.map((headline, index) => (
-              <div key={index} className="card bg-base-200">
-                <div className="card-body p-4">
-                  <div className="flex justify-between items-start gap-2">
-                    <p className="flex-1">{headline['Text Content']}</p>
-                    {getPerformanceIcon(headline['Performance Label'])}
-                  </div>
-                  <div className="text-xs text-base-content/60 mt-2 flex items-center gap-2">
-                    Asset ID: {headline['Asset ID']}
-                    {session?.user?.role === 'admin' && (
-                      <div className="flex items-center gap-2">
-                        <button 
-                          className="btn btn-ghost btn-xs p-0" 
-                          onClick={() => {
-                            setSelectedAsset(headline);
-                            setShowBlockModal(true);
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                        </button>
-                        <button 
-                          className="btn btn-ghost btn-xs p-0" 
-                          onClick={() => handleDelete(headline['Asset ID'])}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+          
+          {/* Short Headlines */}
+          {assetGroup.shortHeadlines && assetGroup.shortHeadlines.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="badge badge-primary">Short Headlines</span>
+                <span className="text-sm text-base-content/60">(≤30 characters)</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {assetGroup.shortHeadlines.map((headline, index) => (
+                  <div key={index} className="card bg-base-200">
+                    <div className="card-body p-4">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="flex-1">{headline['Text Content']}</p>
+                        {getPerformanceIcon(headline['Performance Label'])}
                       </div>
-                    )}
+                      <div className="text-xs text-base-content/60 mt-2 flex items-center gap-2">
+                        Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars
+                        {session?.user?.role === 'admin' && (
+                          <div className="flex items-center gap-2">
+                            <button 
+                              className="btn btn-ghost btn-xs p-0" 
+                              onClick={() => {
+                                setSelectedAsset(headline);
+                                setShowBlockModal(true);
+                              }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                            </button>
+                            <button 
+                              className="btn btn-ghost btn-xs p-0" 
+                              onClick={() => handleDelete(headline['Asset ID'])}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-            {headlines.length === 0 && (
-              <p className="text-gray-500 italic">No headlines available</p>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Long Headlines */}
+          {assetGroup.longHeadlines && assetGroup.longHeadlines.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <span className="badge badge-secondary">Long Headlines</span>
+                <span className="text-sm text-base-content/60">(&gt;30 characters)</span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {assetGroup.longHeadlines.map((headline, index) => (
+                  <div key={index} className="card bg-base-200">
+                    <div className="card-body p-4">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="flex-1">{headline['Text Content']}</p>
+                        {getPerformanceIcon(headline['Performance Label'])}
+                      </div>
+                      <div className="text-xs text-base-content/60 mt-2 flex items-center gap-2">
+                        Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars
+                        {session?.user?.role === 'admin' && (
+                          <div className="flex items-center gap-2">
+                            <button 
+                              className="btn btn-ghost btn-xs p-0" 
+                              onClick={() => {
+                                setSelectedAsset(headline);
+                                setShowBlockModal(true);
+                              }}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                              </svg>
+                            </button>
+                            <button 
+                              className="btn btn-ghost btn-xs p-0" 
+                              onClick={() => handleDelete(headline['Asset ID'])}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-error" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No headlines message */}
+          {(!assetGroup.shortHeadlines || assetGroup.shortHeadlines.length === 0) && 
+           (!assetGroup.longHeadlines || assetGroup.longHeadlines.length === 0) && (
+            <p className="text-gray-500 italic">No headlines available</p>
+          )}
         </div>
       </div>
 
@@ -642,7 +703,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                       </div>
                     </div>
                     <div className="text-xs text-gray-500 mt-2 flex items-center justify-between">
-                      <span>Asset ID: {headline['Asset ID']}</span>
+                      <span>Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars</span>
                       <span className="badge badge-sm badge-warning">PENDING</span>
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
