@@ -23,7 +23,7 @@ export default function ChangesPage() {
     try {
       setLoading(true);
       console.log('Fetching changes with params:', { filter, dateRange });
-      const response = await fetch(`/api/changes?accountId=3729097555&filter=${filter}&dateRange=${dateRange}`);
+      const response = await fetch(`/api/changes?accountId=1&filter=${filter}&dateRange=${dateRange}`);
       console.log('Changes API response status:', response.status);
       if (response.ok) {
         const data = await response.json();

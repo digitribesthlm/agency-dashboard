@@ -14,16 +14,17 @@ export default async function handler(req, res) {
       const { assetGroupId, campaignId, accountId, filter, dateRange } = req.query;
       const { db } = await connectToDatabase();
 
-      // Build query for asset changes
+      // Build query for asset changes - simplified approach
       let query = {};
       
-      if (assetGroupId) {
+      // Only add filters if they exist and are valid
+      if (assetGroupId && assetGroupId !== 'undefined') {
         query.assetGroupId = Number(assetGroupId);
       }
-      if (campaignId) {
+      if (campaignId && campaignId !== 'undefined') {
         query.campaignId = Number(campaignId);
       }
-      if (accountId) {
+      if (accountId && accountId !== 'undefined') {
         query.accountId = Number(accountId);
       }
 
@@ -34,6 +35,8 @@ export default async function handler(req, res) {
         startDate.setDate(startDate.getDate() - days);
         query.changedAt = { $gte: startDate };
       }
+
+      console.log('Changes API query:', query);
 
       // Get all changes
       const changes = await db.collection('asset_changes')
@@ -48,25 +51,29 @@ export default async function handler(req, res) {
         .limit(100)
         .toArray();
 
-      // Get asset details for context
-      const assetLookupKeys = [...new Set([...changes, ...statusChanges].map(c => `${c.campaignId}_${c.assetGroupId}_${c.assetId}`))];
+      console.log(`Found ${changes.length} changes and ${statusChanges.length} status changes`);
+
+      // Get asset details for context using proper MongoDB query
+      const assetLookupKeys = [...new Set([...changes, ...statusChanges].map(c => ({
+        'Campaign ID': Number(c.campaignId),
+        'Asset Group ID': Number(c.assetGroupId), 
+        'Asset ID': Number(c.assetId)
+      })))];
       const assetDetails = {};
       
       if (assetLookupKeys.length > 0) {
-        const pmaxQuery = [];
-        [...changes, ...statusChanges].forEach(change => {
-          const assetId = change.assetId;
-          const assetGroupId = change.assetGroupId;
-          const campaignId = change.campaignId;
-          
-          pmaxQuery.push({ 'Asset ID': assetId, 'Asset Group ID': assetGroupId, 'Campaign ID': Number(campaignId) });
-          pmaxQuery.push({ 'Asset ID': Number(assetId), 'Asset Group ID': assetGroupId, 'Campaign ID': Number(campaignId) });
-        });
-        
+        // Use proper MongoDB query with $or
         const assets = await db.collection('PMax_Assets')
-          .find({ $or: pmaxQuery })
+          .find({
+            $or: assetLookupKeys.map(key => ({
+              'Campaign ID': key['Campaign ID'],
+              'Asset Group ID': key['Asset Group ID'],
+              'Asset ID': key['Asset ID']
+            }))
+          })
           .toArray();
           
+        // Create lookup map using the same key format
         assets.forEach(asset => {
           const key = `${asset['Campaign ID']}_${asset['Asset Group ID']}_${asset['Asset ID']}`;
           assetDetails[key] = {
