@@ -9,9 +9,12 @@ export default async function handler(req, res) {
     const { accountId } = req.query;
     const { db } = await connectToDatabase();
     
-    // Get assets and performance data
+    // Get assets and performance data (exclude REMOVED assets)
     const assets = await db.collection('PMax_Assets')
-      .find({ 'Account ID': Number(accountId) })
+      .find({ 
+        'Account ID': Number(accountId),
+        'Asset Status': { $ne: 'REMOVED' } // Exclude removed assets
+      })
       .toArray();
 
     // Get performance data from PMax_Assets_Performance collection
@@ -19,28 +22,53 @@ export default async function handler(req, res) {
       .find({ 'Account ID': Number(accountId) })
       .toArray();
 
-    // Create a map of performance data by Asset ID
+    // Create maps of performance data keyed by Composite ID and by Asset ID (fallback)
     const performanceMap = performance.reduce((acc, perf) => {
-      // Normalize Asset ID to string for consistent comparison
-      const assetId = String(perf['Asset ID']);
-      acc[assetId] = perf['Performance Label'];
+      const assetIdStr = String(perf['Asset ID']);
+      const campaignIdStr = String(perf['Campaign ID']);
+      // Performance collection sometimes uses 'AssetGroup ID' (no space) vs 'Asset Group ID'
+      const assetGroupIdField = perf['AssetGroup ID'] !== undefined ? 'AssetGroup ID' : 'Asset Group ID';
+      const assetGroupIdStr = String(perf[assetGroupIdField]);
+
+      const compositeId = `${campaignIdStr}_${assetGroupIdStr}_${assetIdStr}`;
+
+      acc.byComposite[compositeId] = perf['Performance Label'];
+      // Keep best-known label per Asset ID as a fallback (do not overwrite a non-UNKNOWN with UNKNOWN)
+      const existing = acc.byAsset[assetIdStr];
+      const incoming = perf['Performance Label'];
+      if (!existing || existing === 'UNKNOWN') {
+        acc.byAsset[assetIdStr] = incoming;
+      }
       return acc;
-    }, {});
+    }, { byComposite: {}, byAsset: {} });
 
     // Group assets with performance data
     const groupedAssets = assets.reduce((acc, asset) => {
       const campaignId = asset['Campaign ID'];
       const assetGroupId = asset['Asset Group ID'];
       
-      // Add performance label to asset
+      // Add performance label to asset using Composite ID first, then fall back
       const assetIdStr = String(asset['Asset ID']);
+      const compositeId = `${String(campaignId)}_${String(assetGroupId)}_${assetIdStr}`;
       // Use performance data from PMax_Assets_Performance collection if available,
       // otherwise fall back to the existing Performance Max Label in the main collection
-      const performanceLabel = performanceMap[assetIdStr] || asset['Performance Max Label'] || 'UNKNOWN';
+      const performanceLabel = performanceMap.byComposite[compositeId]
+        || performanceMap.byAsset[assetIdStr]
+        || asset['Performance Label']
+        || asset['Performance Max Label']
+        || 'UNKNOWN';
       
+      // Normalize URLs/fields due to upstream schema changes
+      const normalizedFinalUrl = asset['Final URL'] || asset['Landing Page URL'] || asset['Final Url'] || null;
+      const normalizedImageUrl = asset['Image URL'] || asset['Asset URL'] || null;
+
       const assetWithPerformance = {
         ...asset,
-        'Performance Label': performanceLabel
+        'Performance Label': performanceLabel,
+        'Composite ID': compositeId,
+        // Keep original fields, but also ensure normalized ones are present
+        'Final URL': normalizedFinalUrl,
+        'Image URL': normalizedImageUrl
       };
 
       // Initialize campaign if it doesn't exist
@@ -67,7 +95,7 @@ export default async function handler(req, res) {
           images: [],
           videos: [],
           callToActions: [],
-          finalUrl: asset['Final URL']
+          finalUrl: normalizedFinalUrl
         };
       }
 
@@ -120,13 +148,28 @@ export default async function handler(req, res) {
         if (!imageExists) {
           group.images.push(assetWithPerformance);
         }
-      } else if (assetWithPerformance['Asset Type'] === 'VIDEO' || assetWithPerformance['Video ID']) {
+      } else if (assetWithPerformance['Asset Type'] === 'VIDEO' || assetWithPerformance['Asset Type'] === 'YOUTUBE_VIDEO' || assetWithPerformance['Video ID']) {
+        // Ensure a normalized video url is present
+        if (!assetWithPerformance['Video URL']) {
+          assetWithPerformance['Video URL'] = asset['Video URL'] || asset['Asset URL'] || null;
+        }
+        // If Video ID missing, try to derive from URL (e.g., https://www.youtube.com/watch?v=XXXX)
+        if (!assetWithPerformance['Video ID'] && assetWithPerformance['Video URL']) {
+          try {
+            const url = new URL(assetWithPerformance['Video URL']);
+            const vParam = url.searchParams.get('v');
+            if (vParam) {
+              assetWithPerformance['Video ID'] = vParam;
+            }
+          } catch (_) {}
+        }
         // Check if video already exists to prevent duplicates
         const videoExists = group.videos.some(v => 
           v['Asset ID'] === assetWithPerformance['Asset ID'] ||
           (v['Video ID'] === assetWithPerformance['Video ID'] && assetWithPerformance['Video ID'])
         );
-        if (!videoExists && (assetWithPerformance['Video ID'] || assetWithPerformance['Video Title'])) {
+        // Allow append if we have any identifying info: Video ID, Title, or a Video URL
+        if (!videoExists && (assetWithPerformance['Video ID'] || assetWithPerformance['Video Title'] || assetWithPerformance['Video URL'])) {
           group.videos.push(assetWithPerformance);
         }
       }

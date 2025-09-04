@@ -56,8 +56,8 @@ export default async function handler(req, res) {
 
       const { db } = await connectToDatabase();
 
-      // Generate a unique asset ID
-      const assetId = Date.now().toString();
+      // Generate a unique asset ID (use timestamp for now, but should be numeric for consistency)
+      const assetId = Date.now();
 
       const headlineData = {
         'Asset ID': assetId,

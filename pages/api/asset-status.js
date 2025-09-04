@@ -50,6 +50,32 @@ export default async function handler(req, res) {
         status: 'active'
       };
 
+      // Update the actual asset status in PMax_Assets collection
+      const updateQuery = {
+        'Asset ID': Number(assetId),
+        'Asset Group ID': Number(assetGroupId)
+      };
+      if (finalCampaignId) {
+        updateQuery['Campaign ID'] = Number(finalCampaignId);
+      }
+
+      let updateField = {};
+      if (action === 'pause') {
+        updateField['Asset Status'] = 'PAUSED';
+      } else if (action === 'resume') {
+        updateField['Asset Status'] = 'ENABLED';
+      } else if (action === 'remove') {
+        updateField['Asset Status'] = 'REMOVED';
+      }
+
+      // Update the asset in PMax_Assets collection
+      const updateResult = await db.collection('PMax_Assets').updateMany(
+        updateQuery,
+        { $set: updateField }
+      );
+
+      console.log(`Updated ${updateResult.modifiedCount} assets in PMax_Assets collection`);
+
       // Insert into asset status changes collection
       const result = await db.collection('asset_status_changes').insertOne(statusChange);
 
@@ -61,7 +87,7 @@ export default async function handler(req, res) {
         assetGroupId: Number(assetGroupId),
         campaignId: finalCampaignId || 'unknown',
         accountId: accountId || 1,
-        data: { action, assetType },
+        data: { action, assetType, newStatus: updateField['Asset Status'] },
         changedBy: session.user.email,
         changedAt: new Date(),
         userRole: session.user.role,

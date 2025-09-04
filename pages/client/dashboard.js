@@ -112,6 +112,16 @@ export default function ClientDashboard() {
                 Campaigns
               </button>
             </li>
+            <li>
+              <a 
+                href="/changes" 
+                className="link link-primary"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                📊 Changes Tracking
+              </a>
+            </li>
             {selectedCampaign && (
               <li>
                 <button 
@@ -365,6 +375,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
   const [pausedImages, setPausedImages] = useState([]);
   const [pausedVideos, setPausedVideos] = useState([]);
   const [pausedHeadlines, setPausedHeadlines] = useState([]);
+  const [removedHeadlines, setRemovedHeadlines] = useState([]);
   const [pausedDescriptions, setPausedDescriptions] = useState([]);
   const [showVideoLibrary, setShowVideoLibrary] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
@@ -380,10 +391,27 @@ const AssetGroupDetail = ({ assetGroup }) => {
   
   console.log('AssetGroupDetail rendering with assetGroup:', assetGroup?.assetGroupName);
   
-  const filteredHeadlines = assetGroup?.headlines || [];
-  const filteredDescriptions = assetGroup?.descriptions || [];
-  const filteredImages = assetGroup?.images || [];
-  const filteredVideos = assetGroup?.videos || [];
+  const filteredHeadlines = (assetGroup?.headlines || []).filter(h => 
+    !removedHeadlines.includes(h['Asset ID']) && 
+    h['Asset Status'] !== 'REMOVED'
+  );
+  const filteredShortHeadlines = (assetGroup?.shortHeadlines || []).filter(h => 
+    !removedHeadlines.includes(h['Asset ID']) && 
+    h['Asset Status'] !== 'REMOVED'
+  );
+  const filteredLongHeadlines = (assetGroup?.longHeadlines || []).filter(h => 
+    !removedHeadlines.includes(h['Asset ID']) && 
+    h['Asset Status'] !== 'REMOVED'
+  );
+  const filteredDescriptions = (assetGroup?.descriptions || []).filter(d => 
+    d['Asset Status'] !== 'REMOVED'
+  );
+  const filteredImages = (assetGroup?.images || []).filter(i => 
+    i['Asset Status'] !== 'REMOVED'
+  );
+  const filteredVideos = (assetGroup?.videos || []).filter(v => 
+    v['Asset Status'] !== 'REMOVED'
+  );
 
   // Fetch changes history and pending content when component mounts
   useEffect(() => {
@@ -787,6 +815,8 @@ const AssetGroupDetail = ({ assetGroup }) => {
       if (response.ok) {
         // Remove from paused list if it was paused
         setPausedHeadlines(prev => prev.filter(id => id !== headlineId));
+        // Optimistically hide this headline in the UI
+        setRemovedHeadlines(prev => [...prev, headlineId]);
         // Note: The asset will be filtered out by the API on next refresh
       } else {
         console.error('Failed to remove headline');
@@ -1216,14 +1246,14 @@ const AssetGroupDetail = ({ assetGroup }) => {
           )}
 
           {/* Short Headlines */}
-          {assetGroup.shortHeadlines && assetGroup.shortHeadlines.length > 0 && (
+          {filteredShortHeadlines && filteredShortHeadlines.length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span className="badge badge-primary">Short Headlines</span>
                 <span className="text-sm text-base-content/60">(HEADLINE field type)</span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {assetGroup.shortHeadlines.map((headline, index) => (
+                {filteredShortHeadlines.map((headline, index) => (
                   <div key={index} className="card bg-base-200">
                     <div className="card-body p-4">
                       <div className="flex justify-between items-start gap-2">
@@ -1231,7 +1261,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                         <div className="flex items-center gap-2">
                           {getPerformanceIcon(headline['Performance Label'])}
                           <div className="flex gap-1">
-                            {pausedHeadlines.includes(headline['Asset ID']) ? (
+                            {(pausedHeadlines.includes(headline['Asset ID']) || headline['Asset Status'] === 'PAUSED') ? (
                               <button
                                 className="btn btn-sm btn-success"
                                 onClick={() => handleResumeHeadline(headline['Asset ID'])}
@@ -1247,6 +1277,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                               </button>
                             )}
                             <button
+                              type="button"
                               className="btn btn-sm btn-error"
                               onClick={() => handleRemoveHeadline(headline['Asset ID'])}
                               title="Remove headline"
@@ -1260,7 +1291,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                       </div>
                       <div className="text-xs text-base-content/60 mt-2">
                         Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars
-                        {pausedHeadlines.includes(headline['Asset ID']) && (
+                        {(pausedHeadlines.includes(headline['Asset ID']) || headline['Asset Status'] === 'PAUSED') && (
                           <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
                         )}
                       </div>
@@ -1272,14 +1303,14 @@ const AssetGroupDetail = ({ assetGroup }) => {
           )}
 
           {/* Long Headlines */}
-          {assetGroup.longHeadlines && assetGroup.longHeadlines.length > 0 && (
+          {filteredLongHeadlines && filteredLongHeadlines.length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <span className="badge badge-secondary">Long Headlines</span>
                 <span className="text-sm text-base-content/60">(LONG_HEADLINE field type)</span>
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {assetGroup.longHeadlines.map((headline, index) => (
+                {filteredLongHeadlines.map((headline, index) => (
                   <div key={index} className="card bg-base-200">
                     <div className="card-body p-4">
                       <div className="flex justify-between items-start gap-2">
@@ -1287,7 +1318,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                         <div className="flex items-center gap-2">
                           {getPerformanceIcon(headline['Performance Label'])}
                           <div className="flex gap-1">
-                            {pausedHeadlines.includes(headline['Asset ID']) ? (
+                            {(pausedHeadlines.includes(headline['Asset ID']) || headline['Asset Status'] === 'PAUSED') ? (
                               <button
                                 className="btn btn-sm btn-success"
                                 onClick={() => handleResumeHeadline(headline['Asset ID'])}
@@ -1303,6 +1334,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                               </button>
                             )}
                             <button
+                              type="button"
                               className="btn btn-sm btn-error"
                               onClick={() => handleRemoveHeadline(headline['Asset ID'])}
                               title="Remove headline"
@@ -1316,7 +1348,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                       </div>
                       <div className="text-xs text-base-content/60 mt-2">
                         Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars
-                        {pausedHeadlines.includes(headline['Asset ID']) && (
+                        {(pausedHeadlines.includes(headline['Asset ID']) || headline['Asset Status'] === 'PAUSED') && (
                           <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
                         )}
                       </div>
@@ -1360,8 +1392,8 @@ const AssetGroupDetail = ({ assetGroup }) => {
           )}
 
           {/* No headlines message */}
-          {(!assetGroup.shortHeadlines || assetGroup.shortHeadlines.length === 0) && 
-           (!assetGroup.longHeadlines || assetGroup.longHeadlines.length === 0) && 
+          {(!filteredShortHeadlines || filteredShortHeadlines.length === 0) && 
+           (!filteredLongHeadlines || filteredLongHeadlines.length === 0) && 
            pendingHeadlines.length === 0 && (
             <p className="text-gray-500 italic">No headlines available</p>
           )}
@@ -1430,7 +1462,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                     <div className="flex items-center gap-2">
                     {getPerformanceIcon(desc['Performance Label'])}
                       <div className="flex gap-1">
-                        {pausedDescriptions.includes(desc['Asset ID']) ? (
+                        {(pausedDescriptions.includes(desc['Asset ID']) || desc['Asset Status'] === 'PAUSED') ? (
                           <button
                             className="btn btn-sm btn-success"
                             onClick={() => handleResumeDescription(desc['Asset ID'])}
@@ -1459,7 +1491,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
                   </div>
                   <div className="text-xs text-base-content/60 mt-2">
                     Asset ID: {desc['Asset ID']}
-                    {pausedDescriptions.includes(desc['Asset ID']) && (
+                    {(pausedDescriptions.includes(desc['Asset ID']) || desc['Asset Status'] === 'PAUSED') && (
                       <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
                     )}
                   </div>
@@ -1573,8 +1605,9 @@ const AssetGroupDetail = ({ assetGroup }) => {
                         )}
                       </button>
                       <button 
+                        type="button"
                         className="btn btn-error btn-xs"
-                        onClick={() => handlePauseImage(image['Asset ID'])}
+                        onClick={() => handleRemoveImage(image['Asset ID'])}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

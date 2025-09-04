@@ -137,6 +137,16 @@ export default function ClientDashboard() {
                 Campaigns
               </button>
             </li>
+            <li>
+              <a 
+                href="/changes" 
+                className="link link-primary"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                📊 Changes Tracking
+              </a>
+            </li>
             {selectedCampaign && (
               <li>
                 <button 
