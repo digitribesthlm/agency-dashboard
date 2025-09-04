@@ -9,6 +9,10 @@ export default function ChangesPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, needs-update, pause, resume, remove
   const [dateRange, setDateRange] = useState('7'); // 1, 7, 30, all
+  const [selectedCampaign, setSelectedCampaign] = useState('all');
+  const [selectedAssetGroup, setSelectedAssetGroup] = useState('all');
+  const [campaigns, setCampaigns] = useState([]);
+  const [assetGroups, setAssetGroups] = useState([]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -16,14 +20,58 @@ export default function ChangesPage() {
       router.push('/login');
       return;
     }
+    fetchCampaignsAndAssetGroups();
     fetchChanges();
-  }, [session, status, filter, dateRange]);
+  }, [session, status, filter, dateRange, selectedCampaign, selectedAssetGroup]);
+
+  const fetchCampaignsAndAssetGroups = async () => {
+    try {
+      // Fetch campaigns and asset groups from the assets API
+      const response = await fetch('/api/assets?accountId=1');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Extract unique campaigns and asset groups from the data
+          const campaignSet = new Set();
+          const assetGroupSet = new Set();
+          
+          data.data.forEach(campaign => {
+            campaignSet.add({
+              id: campaign.campaignId,
+              name: campaign.campaignName
+            });
+            campaign.assetGroups.forEach(assetGroup => {
+              assetGroupSet.add({
+                id: assetGroup.assetGroupId,
+                name: assetGroup.assetGroupName,
+                campaignId: campaign.campaignId
+              });
+            });
+          });
+          
+          setCampaigns(Array.from(campaignSet));
+          setAssetGroups(Array.from(assetGroupSet));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching campaigns and asset groups:', error);
+    }
+  };
 
   const fetchChanges = async () => {
     try {
       setLoading(true);
-      console.log('Fetching changes with params:', { filter, dateRange });
-      const response = await fetch(`/api/changes?accountId=1&filter=${filter}&dateRange=${dateRange}`);
+      console.log('Fetching changes with params:', { filter, dateRange, selectedCampaign, selectedAssetGroup });
+      
+      let url = `/api/changes?accountId=1&filter=${filter}&dateRange=${dateRange}`;
+      if (selectedCampaign !== 'all') {
+        url += `&campaignId=${selectedCampaign}`;
+      }
+      if (selectedAssetGroup !== 'all') {
+        url += `&assetGroupId=${selectedAssetGroup}`;
+      }
+      
+      const response = await fetch(url);
       console.log('Changes API response status:', response.status);
       if (response.ok) {
         const data = await response.json();
@@ -101,7 +149,7 @@ export default function ChangesPage() {
         {/* Filters */}
         <div className="card bg-base-100 shadow-xl mb-6">
           <div className="card-body">
-            <div className="flex flex-wrap gap-4 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
               <div className="form-control">
                 <label className="label">
                   <span className="label-text">Filter by Action</span>
@@ -135,6 +183,52 @@ export default function ChangesPage() {
                 </select>
               </div>
 
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Campaign</span>
+                </label>
+                <select 
+                  className="select select-bordered"
+                  value={selectedCampaign}
+                  onChange={(e) => {
+                    setSelectedCampaign(e.target.value);
+                    setSelectedAssetGroup('all'); // Reset asset group when campaign changes
+                  }}
+                >
+                  <option value="all">All Campaigns</option>
+                  {campaigns.map(campaign => (
+                    <option key={campaign.id} value={campaign.id}>
+                      {campaign.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Asset Group</span>
+                </label>
+                <select 
+                  className="select select-bordered"
+                  value={selectedAssetGroup}
+                  onChange={(e) => setSelectedAssetGroup(e.target.value)}
+                  disabled={selectedCampaign === 'all'}
+                >
+                  <option value="all">All Asset Groups</option>
+                  {assetGroups
+                    .filter(ag => selectedCampaign === 'all' || ag.campaignId === Number(selectedCampaign))
+                    .map(assetGroup => (
+                      <option key={assetGroup.id} value={assetGroup.id}>
+                        {assetGroup.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="divider"></div>
+            
+            <div className="flex flex-wrap gap-4 items-center justify-between">
               <div className="stats shadow">
                 <div className="stat">
                   <div className="stat-title">Total Changes</div>
