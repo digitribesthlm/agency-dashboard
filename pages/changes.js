@@ -26,10 +26,13 @@ export default function ChangesPage() {
 
   const fetchCampaignsAndAssetGroups = async () => {
     try {
+      console.log('Fetching campaigns and asset groups...');
       // Fetch campaigns and asset groups from the assets API
       const response = await fetch('/api/assets?accountId=1');
+      console.log('Assets API response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('Assets API response data:', data);
         if (data.success) {
           // Extract unique campaigns and asset groups from the data
           const campaignSet = new Set();
@@ -49,9 +52,17 @@ export default function ChangesPage() {
             });
           });
           
-          setCampaigns(Array.from(campaignSet));
-          setAssetGroups(Array.from(assetGroupSet));
+          const campaignsArray = Array.from(campaignSet);
+          const assetGroupsArray = Array.from(assetGroupSet);
+          
+          console.log('Found campaigns:', campaignsArray.length);
+          console.log('Found asset groups:', assetGroupsArray.length);
+          
+          setCampaigns(campaignsArray);
+          setAssetGroups(assetGroupsArray);
         }
+      } else {
+        console.error('Assets API error:', response.status);
       }
     } catch (error) {
       console.error('Error fetching campaigns and asset groups:', error);
@@ -257,28 +268,28 @@ export default function ChangesPage() {
                 <table className="table table-zebra w-full">
                   <thead>
                     <tr>
-                      <th>Time</th>
-                      <th>Action</th>
-                      <th>Asset Type</th>
-                      <th>Content</th>
-                      <th>Campaign</th>
-                      <th>Asset Group</th>
-                      <th>Changed By</th>
-                      <th>Google Ads</th>
+                      <th className="w-40 text-left">Time</th>
+                      <th className="w-24 text-center">Action</th>
+                      <th className="w-36 text-left">Asset Type</th>
+                      <th className="w-80 text-left">Content</th>
+                      <th className="w-60 text-left">Campaign</th>
+                      <th className="w-60 text-left">Asset Group</th>
+                      <th className="w-40 text-left">Changed By</th>
+                      <th className="w-32 text-center">Google Ads</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredChanges.map((change, index) => (
                       <tr key={index} className="hover">
-                        <td className="text-sm">
+                        <td className="text-sm text-left">
                           {formatDate(change.changedAt)}
                         </td>
-                        <td>
-                          <div className="badge badge-sm" className={`badge ${getActionBadge(change.action)}`}>
+                        <td className="text-center">
+                          <div className={`badge badge-sm ${getActionBadge(change.action)}`}>
                             {change.action.toUpperCase()}
                           </div>
                         </td>
-                        <td>
+                        <td className="text-left">
                           <div className="flex items-center gap-2">
                             <span className="text-lg">
                               {getAssetTypeIcon(change.assetDetails.assetType, change.assetDetails.fieldType)}
@@ -293,31 +304,55 @@ export default function ChangesPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="max-w-xs">
+                        <td className="text-left">
                           <div className="truncate" title={change.assetDetails.textContent}>
                             {change.assetDetails.textContent || 'N/A'}
                           </div>
                           <div className="text-xs text-base-content/60">
                             ID: {change.assetId}
                           </div>
+                          {/* Image preview for image assets */}
+                          {change.assetDetails.assetType === 'IMAGE' && change.assetDetails.assetUrl && (
+                            <div className="relative group mt-2">
+                              <div className="text-xs text-blue-600 cursor-pointer hover:text-blue-800">
+                                🖼️ View Image
+                              </div>
+                              <div className="absolute left-0 top-6 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-2 max-w-xs">
+                                  <img 
+                                    src={change.assetDetails.assetUrl} 
+                                    alt="Asset preview" 
+                                    className="max-w-full max-h-48 object-contain rounded"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      e.target.nextSibling.style.display = 'block';
+                                    }}
+                                  />
+                                  <div className="text-xs text-gray-500 mt-1 hidden">
+                                    Image not available
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </td>
-                        <td className="max-w-xs">
+                        <td className="text-left">
                           <div className="truncate" title={change.assetDetails.campaignName}>
                             {change.assetDetails.campaignName || 'N/A'}
                           </div>
                         </td>
-                        <td className="max-w-xs">
+                        <td className="text-left">
                           <div className="truncate" title={change.assetDetails.assetGroupName}>
                             {change.assetDetails.assetGroupName || 'N/A'}
                           </div>
                         </td>
-                        <td>
+                        <td className="text-left">
                           <div className="text-sm">{change.changedBy}</div>
                           <div className="text-xs text-base-content/60">
                             {change.userRole}
                           </div>
                         </td>
-                        <td>
+                        <td className="text-center">
                           {change.needsGoogleAdsUpdate ? (
                             <div className="badge badge-warning badge-sm">
                               ⚠️ Needs Update
