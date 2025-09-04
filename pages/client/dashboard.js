@@ -79,6 +79,29 @@ export default function ClientDashboard() {
     fetchAssets();
   }, [status, session]);
 
+  // Refresh campaigns and keep the currently selected asset group in sync
+  const refreshCampaignsAndSyncSelection = async () => {
+    try {
+      const res = await fetch(`/api/assets?accountId=${session.user.accountId}&_=${Date.now()}`);
+      const data = await res.json();
+      if (data.success) {
+        setCampaigns(data.data);
+
+        if (selectedAssetGroup) {
+          const updatedCampaign = data.data.find(c => c.campaignId === selectedAssetGroup.campaignId);
+          if (updatedCampaign) {
+            const updatedAssetGroup = updatedCampaign.assetGroups.find(ag => ag.assetGroupId === selectedAssetGroup.assetGroupId);
+            if (updatedAssetGroup) {
+              setSelectedAssetGroup(updatedAssetGroup);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh campaigns:', err);
+    }
+  };
+
   if (status === 'loading' || loading) {
     return (
       <Layout>
@@ -150,7 +173,10 @@ export default function ClientDashboard() {
             onSelect={setSelectedAssetGroup} 
           />
         ) : (
-          <AssetGroupDetail assetGroup={selectedAssetGroup} />
+          <AssetGroupDetail 
+            assetGroup={selectedAssetGroup}
+            onRefresh={refreshCampaignsAndSyncSelection}
+          />
         )}
       </div>
     </Layout>
@@ -363,7 +389,7 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
   );
 };
 
-const AssetGroupDetail = ({ assetGroup }) => {
+const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
   const [newHeadline, setNewHeadline] = useState('');
   const [newLongHeadline, setNewLongHeadline] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -372,11 +398,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
   const [showAddDescriptionForm, setShowAddDescriptionForm] = useState(false);
   const [newLandingPage, setNewLandingPage] = useState('');
   const [showAddLandingPageForm, setShowAddLandingPageForm] = useState(false);
-  const [pausedImages, setPausedImages] = useState([]);
-  const [pausedVideos, setPausedVideos] = useState([]);
-  const [pausedHeadlines, setPausedHeadlines] = useState([]);
-  const [removedHeadlines, setRemovedHeadlines] = useState([]);
-  const [pausedDescriptions, setPausedDescriptions] = useState([]);
   const [showVideoLibrary, setShowVideoLibrary] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [showImageLibrary, setShowImageLibrary] = useState(false);
@@ -391,27 +412,12 @@ const AssetGroupDetail = ({ assetGroup }) => {
   
   console.log('AssetGroupDetail rendering with assetGroup:', assetGroup?.assetGroupName);
   
-  const filteredHeadlines = (assetGroup?.headlines || []).filter(h => 
-    !removedHeadlines.includes(h['Asset ID']) && 
-    h['Asset Status'] !== 'REMOVED'
-  );
-  const filteredShortHeadlines = (assetGroup?.shortHeadlines || []).filter(h => 
-    !removedHeadlines.includes(h['Asset ID']) && 
-    h['Asset Status'] !== 'REMOVED'
-  );
-  const filteredLongHeadlines = (assetGroup?.longHeadlines || []).filter(h => 
-    !removedHeadlines.includes(h['Asset ID']) && 
-    h['Asset Status'] !== 'REMOVED'
-  );
-  const filteredDescriptions = (assetGroup?.descriptions || []).filter(d => 
-    d['Asset Status'] !== 'REMOVED'
-  );
-  const filteredImages = (assetGroup?.images || []).filter(i => 
-    i['Asset Status'] !== 'REMOVED'
-  );
-  const filteredVideos = (assetGroup?.videos || []).filter(v => 
-    v['Asset Status'] !== 'REMOVED'
-  );
+  const filteredHeadlines = assetGroup?.headlines || [];
+  const filteredShortHeadlines = assetGroup?.shortHeadlines || [];
+  const filteredLongHeadlines = assetGroup?.longHeadlines || [];
+  const filteredDescriptions = assetGroup?.descriptions || [];
+  const filteredImages = assetGroup?.images || [];
+  const filteredVideos = assetGroup?.videos || [];
 
   // Fetch changes history and pending content when component mounts
   useEffect(() => {
@@ -481,10 +487,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
         if (statusResponse.ok) {
           const statusData = await statusResponse.json();
           if (statusData.success) {
-            setPausedHeadlines(statusData.data.pausedHeadlines || []);
-            setPausedDescriptions(statusData.data.pausedDescriptions || []);
-            setPausedImages(statusData.data.pausedImages || []);
-            setPausedVideos(statusData.data.pausedVideos || []);
           }
         }
         
@@ -687,139 +689,44 @@ const AssetGroupDetail = ({ assetGroup }) => {
     }
   };
 
-  const handlePauseHeadline = async (headlineId) => {
-    try {
-      const response = await fetch('/api/asset-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'pause',
-          assetType: 'headline',
-          assetId: headlineId,
-          assetGroupId: assetGroup.assetGroupId,
-          campaignId: assetGroup.campaignId,
-          accountId: assetGroup.accountId || 1
-        }),
-      });
 
-      if (response.ok) {
-        setPausedHeadlines(prev => [...prev, headlineId]);
-      } else {
-        console.error('Failed to pause headline');
-      }
-    } catch (error) {
-      console.error('Error pausing headline:', error);
-    }
-  };
-
-  const handleResumeHeadline = async (headlineId) => {
-    try {
-      const response = await fetch('/api/asset-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'resume',
-          assetType: 'headline',
-          assetId: headlineId,
-          assetGroupId: assetGroup.assetGroupId,
-          campaignId: assetGroup.campaignId,
-          accountId: assetGroup.accountId || 1
-        }),
-      });
-
-      if (response.ok) {
-        setPausedHeadlines(prev => prev.filter(id => id !== headlineId));
-      } else {
-        console.error('Failed to resume headline');
-      }
-    } catch (error) {
-      console.error('Error resuming headline:', error);
-    }
-  };
-
-  const handlePauseDescription = async (descriptionId) => {
-    try {
-      const response = await fetch('/api/asset-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'pause',
-          assetType: 'description',
-          assetId: descriptionId,
-          assetGroupId: assetGroup.assetGroupId,
-          campaignId: assetGroup.campaignId,
-          accountId: assetGroup.accountId || 1
-        }),
-      });
-
-      if (response.ok) {
-        setPausedDescriptions(prev => [...prev, descriptionId]);
-      } else {
-        console.error('Failed to pause description');
-      }
-    } catch (error) {
-      console.error('Error pausing description:', error);
-    }
-  };
-
-  const handleResumeDescription = async (descriptionId) => {
-    try {
-      const response = await fetch('/api/asset-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'resume',
-          assetType: 'description',
-          assetId: descriptionId,
-          assetGroupId: assetGroup.assetGroupId,
-          campaignId: assetGroup.campaignId,
-          accountId: assetGroup.accountId || 1
-        }),
-      });
-
-      if (response.ok) {
-        setPausedDescriptions(prev => prev.filter(id => id !== descriptionId));
-      } else {
-        console.error('Failed to resume description');
-      }
-    } catch (error) {
-      console.error('Error resuming description:', error);
-    }
-  };
 
   const handleRemoveHeadline = async (headlineId) => {
+    console.log('handleRemoveHeadline called with ID:', headlineId);
     try {
+      const requestData = {
+        action: 'remove',
+        assetType: 'headline',
+        assetId: headlineId,
+        assetGroupId: assetGroup.assetGroupId,
+        campaignId: assetGroup.campaignId,
+        accountId: assetGroup.accountId || 1
+      };
+      console.log('Sending request data:', requestData);
+      
       const response = await fetch('/api/asset-status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          action: 'remove',
-          assetType: 'headline',
-          assetId: headlineId,
-          assetGroupId: assetGroup.assetGroupId,
-          campaignId: assetGroup.campaignId,
-          accountId: assetGroup.accountId || 1
-        }),
+        body: JSON.stringify(requestData),
       });
 
+      console.log('Response status:', response.status);
       if (response.ok) {
-        // Remove from paused list if it was paused
-        setPausedHeadlines(prev => prev.filter(id => id !== headlineId));
-        // Optimistically hide this headline in the UI
-        setRemovedHeadlines(prev => [...prev, headlineId]);
-        // Note: The asset will be filtered out by the API on next refresh
+        // Immediately update local view to remove the item
+        if (assetGroup && Array.isArray(assetGroup.shortHeadlines)) {
+          assetGroup.shortHeadlines = assetGroup.shortHeadlines.filter(h => String(h['Asset ID']) !== String(headlineId));
+        }
+        if (assetGroup && Array.isArray(assetGroup.longHeadlines)) {
+          assetGroup.longHeadlines = assetGroup.longHeadlines.filter(h => String(h['Asset ID']) !== String(headlineId));
+        }
+        // Ask parent to refresh server data and re-sync selection
+        onRefresh && onRefresh();
+        console.log('Headline removed successfully');
       } else {
-        console.error('Failed to remove headline');
+        const errorText = await response.text();
+        console.error('Failed to remove headline:', response.status, errorText);
       }
     } catch (error) {
       console.error('Error removing headline:', error);
@@ -844,9 +751,12 @@ const AssetGroupDetail = ({ assetGroup }) => {
       });
 
       if (response.ok) {
-        // Remove from paused list if it was paused
-        setPausedDescriptions(prev => prev.filter(id => id !== descriptionId));
-        // Note: The asset will be filtered out by the API on next refresh
+        // Immediately update local view
+        if (assetGroup && Array.isArray(assetGroup.descriptions)) {
+          assetGroup.descriptions = assetGroup.descriptions.filter(d => String(d['Asset ID']) !== String(descriptionId));
+        }
+        onRefresh && onRefresh();
+        console.log('Description removed successfully');
       } else {
         console.error('Failed to remove description');
       }
@@ -855,32 +765,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
     }
   };
 
-  const handlePauseImage = async (imageId) => {
-    try {
-      const response = await fetch('/api/asset-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'pause',
-          assetType: 'image',
-          assetId: imageId,
-          assetGroupId: assetGroup.assetGroupId,
-          campaignId: assetGroup.campaignId,
-          accountId: assetGroup.accountId || 1
-        }),
-      });
-
-      if (response.ok) {
-        setPausedImages(prev => [...prev, imageId]);
-      } else {
-        console.error('Failed to pause image');
-      }
-    } catch (error) {
-      console.error('Error pausing image:', error);
-    }
-  };
 
   const handleRemoveImage = async (imageId) => {
     try {
@@ -900,8 +784,12 @@ const AssetGroupDetail = ({ assetGroup }) => {
       });
 
       if (response.ok) {
-        setPausedImages(prev => prev.filter(id => id !== imageId));
-        window.location.reload();
+        // Immediately update local view
+        if (assetGroup && Array.isArray(assetGroup.images)) {
+          assetGroup.images = assetGroup.images.filter(img => String(img['Asset ID']) !== String(imageId));
+        }
+        onRefresh && onRefresh();
+        console.log('Image removed successfully');
       } else {
         console.error('Failed to remove image');
       }
@@ -910,7 +798,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
     }
   };
 
-  const handlePauseVideo = async (videoId) => {
+  const handleRemoveVideo = async (videoId) => {
     try {
       const response = await fetch('/api/asset-status', {
         method: 'POST',
@@ -918,7 +806,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: 'pause',
+          action: 'remove',
           assetType: 'video',
           assetId: videoId,
           assetGroupId: assetGroup.assetGroupId,
@@ -928,39 +816,17 @@ const AssetGroupDetail = ({ assetGroup }) => {
       });
 
       if (response.ok) {
-        setPausedVideos(prev => [...prev, videoId]);
+        // Immediately update local view
+        if (assetGroup && Array.isArray(assetGroup.videos)) {
+          assetGroup.videos = assetGroup.videos.filter(v => String(v['Asset ID']) !== String(videoId));
+        }
+        onRefresh && onRefresh();
+        console.log('Video removed successfully');
       } else {
-        console.error('Failed to pause video');
+        console.error('Failed to remove video');
       }
     } catch (error) {
-      console.error('Error pausing video:', error);
-    }
-  };
-
-  const handleResumeVideo = async (videoId) => {
-    try {
-      const response = await fetch('/api/asset-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'resume',
-          assetType: 'video',
-          assetId: videoId,
-          assetGroupId: assetGroup.assetGroupId,
-          campaignId: assetGroup.campaignId,
-          accountId: assetGroup.accountId || 1
-        }),
-      });
-
-      if (response.ok) {
-        setPausedVideos(prev => prev.filter(id => id !== videoId));
-      } else {
-        console.error('Failed to resume video');
-      }
-    } catch (error) {
-      console.error('Error resuming video:', error);
+      console.error('Error removing video:', error);
     }
   };
 
@@ -1093,10 +959,8 @@ const AssetGroupDetail = ({ assetGroup }) => {
   const renderVideoThumbnail = (video, index) => {
     if (!video) return null;
     
-    const isPaused = pausedVideos.includes(video['Asset ID']);
-    
     return (
-      <div key={index} className={`card ${isPaused ? 'bg-gray-300 opacity-60' : 'bg-base-200'}`}>
+      <div key={index} className="card bg-base-200">
         <figure className="aspect-video">
           <iframe
             className="w-full h-full"
@@ -1115,26 +979,18 @@ const AssetGroupDetail = ({ assetGroup }) => {
             </span>
             <div className="flex items-center gap-2">
               {getPerformanceIcon(video['Performance Label'])}
-              {isPaused ? (
-                <button
-                  className="btn btn-sm btn-success"
-                  onClick={() => handleResumeVideo(video['Asset ID'])}
-                >
-                  Resume
-                </button>
-              ) : (
-                <button
-                  className="btn btn-sm btn-warning"
-                  onClick={() => handlePauseVideo(video['Asset ID'])}
-                >
-                  Pause
-                </button>
-              )}
+              <button
+                type="button"
+                className="btn btn-sm btn-error"
+                onClick={() => handleRemoveVideo(video['Asset ID'])}
+                title="Remove video"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
           </div>
-          {isPaused && (
-            <div className="badge badge-warning badge-sm mt-2">PAUSED</div>
-          )}
         </div>
       </div>
     );
@@ -1261,21 +1117,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
                         <div className="flex items-center gap-2">
                           {getPerformanceIcon(headline['Performance Label'])}
                           <div className="flex gap-1">
-                            {(pausedHeadlines.includes(headline['Asset ID']) || headline['Asset Status'] === 'PAUSED') ? (
-                              <button
-                                className="btn btn-sm btn-success"
-                                onClick={() => handleResumeHeadline(headline['Asset ID'])}
-                              >
-                                Resume
-                              </button>
-                            ) : (
-                              <button
-                                className="btn btn-sm btn-warning"
-                                onClick={() => handlePauseHeadline(headline['Asset ID'])}
-                              >
-                                Pause
-                              </button>
-                            )}
                             <button
                               type="button"
                               className="btn btn-sm btn-error"
@@ -1291,9 +1132,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
                       </div>
                       <div className="text-xs text-base-content/60 mt-2">
                         Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars
-                        {(pausedHeadlines.includes(headline['Asset ID']) || headline['Asset Status'] === 'PAUSED') && (
-                          <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1318,21 +1156,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
                         <div className="flex items-center gap-2">
                           {getPerformanceIcon(headline['Performance Label'])}
                           <div className="flex gap-1">
-                            {(pausedHeadlines.includes(headline['Asset ID']) || headline['Asset Status'] === 'PAUSED') ? (
-                              <button
-                                className="btn btn-sm btn-success"
-                                onClick={() => handleResumeHeadline(headline['Asset ID'])}
-                              >
-                                Resume
-                              </button>
-                            ) : (
-                              <button
-                                className="btn btn-sm btn-warning"
-                                onClick={() => handlePauseHeadline(headline['Asset ID'])}
-                              >
-                                Pause
-                              </button>
-                            )}
                             <button
                               type="button"
                               className="btn btn-sm btn-error"
@@ -1348,9 +1171,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
                       </div>
                       <div className="text-xs text-base-content/60 mt-2">
                         Asset ID: {headline['Asset ID']} • {headline['Text Content']?.length} chars
-                        {(pausedHeadlines.includes(headline['Asset ID']) || headline['Asset Status'] === 'PAUSED') && (
-                          <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1462,21 +1282,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
                     <div className="flex items-center gap-2">
                     {getPerformanceIcon(desc['Performance Label'])}
                       <div className="flex gap-1">
-                        {(pausedDescriptions.includes(desc['Asset ID']) || desc['Asset Status'] === 'PAUSED') ? (
-                          <button
-                            className="btn btn-sm btn-success"
-                            onClick={() => handleResumeDescription(desc['Asset ID'])}
-                          >
-                            Resume
-                          </button>
-                        ) : (
-                          <button
-                            className="btn btn-sm btn-warning"
-                            onClick={() => handlePauseDescription(desc['Asset ID'])}
-                          >
-                            Pause
-                          </button>
-                        )}
                         <button
                           className="btn btn-sm btn-error"
                           onClick={() => handleRemoveDescription(desc['Asset ID'])}
@@ -1491,9 +1296,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
                   </div>
                   <div className="text-xs text-base-content/60 mt-2">
                     Asset ID: {desc['Asset ID']}
-                    {(pausedDescriptions.includes(desc['Asset ID']) || desc['Asset Status'] === 'PAUSED') && (
-                      <span className="badge badge-warning badge-sm ml-2">PAUSED</span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1548,9 +1350,8 @@ const AssetGroupDetail = ({ assetGroup }) => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredImages.map((image, index) => {
-              const isPaused = pausedImages.includes(image['Asset ID']);
               return (
-                <div key={index} className={`card ${isPaused ? 'bg-gray-300 opacity-60' : 'bg-base-200'}`}>
+                <div key={index} className="card bg-base-200">
                 <figure className="relative aspect-square">
                   {image['Image URL'] === 'View Image' ? (
                     <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-base-200">
@@ -1568,11 +1369,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
                   <div className="absolute top-2 right-2">
                     {getPerformanceIcon(image['Performance Label'])}
                   </div>
-                    {isPaused && (
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">PAUSED</span>
-                      </div>
-                    )}
                 </figure>
                 <div className="card-body p-3">
                     <div className="flex justify-between items-center mb-2">
@@ -1584,26 +1380,6 @@ const AssetGroupDetail = ({ assetGroup }) => {
                     </span>
                   </div>
                     <div className="flex gap-1">
-                      <button 
-                        className={`btn btn-xs flex-1 ${isPaused ? 'btn-success' : 'btn-warning'}`}
-                        onClick={() => isPaused ? handleRemoveImage(image['Asset ID']) : handlePauseImage(image['Asset ID'])}
-                      >
-                        {isPaused ? (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M15 14h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Resume
-                          </>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Pause
-                          </>
-                        )}
-                      </button>
                       <button 
                         type="button"
                         className="btn btn-error btn-xs"
