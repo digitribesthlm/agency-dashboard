@@ -28,7 +28,7 @@ export default function ChangesPage() {
     try {
       console.log('Fetching campaigns and asset groups...');
       // Fetch campaigns and asset groups from the assets API
-      const response = await fetch('/api/assets?accountId=1');
+      const response = await fetch('/api/assets?accountId=3729097555');
       console.log('Assets API response status:', response.status);
       if (response.ok) {
         const data = await response.json();
@@ -39,6 +39,11 @@ export default function ChangesPage() {
           const assetGroupSet = new Set();
           
           data.data.forEach(campaign => {
+            // ADD VALIDATION:
+            if (!campaign.campaignId || !campaign.campaignName) {
+              console.warn('⚠️ Invalid campaign data:', campaign);
+            }
+            
             campaignSet.add({
               id: campaign.campaignId,
               name: campaign.campaignName
@@ -47,7 +52,8 @@ export default function ChangesPage() {
               assetGroupSet.add({
                 id: assetGroup.assetGroupId,
                 name: assetGroup.assetGroupName,
-                campaignId: campaign.campaignId
+                'Campaign ID': campaign.campaignId,
+                'Campaign Name': campaign.campaignName
               });
             });
           });
@@ -60,12 +66,25 @@ export default function ChangesPage() {
           
           setCampaigns(campaignsArray);
           setAssetGroups(assetGroupsArray);
+          
+          // ADD THESE DEBUG LINES:
+          console.log('🔍 DEBUG - Campaigns loaded:', campaignsArray.length, campaignsArray);
+          console.log('🔍 DEBUG - Asset Groups loaded:', assetGroupsArray.length, assetGroupsArray);
+          console.log('🔍 DEBUG - Sample Asset Group structure:', assetGroupsArray[0]);
         }
       } else {
         console.error('Assets API error:', response.status);
       }
     } catch (error) {
       console.error('Error fetching campaigns and asset groups:', error);
+      
+      // ADD DETAILED ERROR HANDLING:
+      if (error.message.includes('fetch')) {
+        console.error('❌ Network error - check if API is running');
+      }
+      if (response && !response.ok) {
+        console.error('❌ API error - status:', response.status);
+      }
     }
   };
 
@@ -74,7 +93,7 @@ export default function ChangesPage() {
       setLoading(true);
       console.log('Fetching changes with params:', { filter, dateRange, selectedCampaign, selectedAssetGroup });
       
-      let url = `/api/changes?accountId=1&filter=${filter}&dateRange=${dateRange}`;
+      let url = `/api/changes?accountId=3729097555&filter=${filter}&dateRange=${dateRange}`;
       if (selectedCampaign !== 'all') {
         url += `&campaignId=${selectedCampaign}`;
       }
@@ -202,8 +221,16 @@ export default function ChangesPage() {
                   className="select select-bordered"
                   value={selectedCampaign}
                   onChange={(e) => {
-                    setSelectedCampaign(e.target.value);
+                    const newCampaign = e.target.value;
+                    console.log('🔍 DEBUG - Campaign selected:', newCampaign);
+                    setSelectedCampaign(newCampaign);
                     setSelectedAssetGroup('all'); // Reset asset group when campaign changes
+                    
+                    // Debug: Show filtered asset groups
+                    const filteredGroups = assetGroups.filter(ag => 
+                      newCampaign === 'all' || ag['Campaign ID'] === Number(newCampaign)
+                    );
+                    console.log('🔍 DEBUG - Filtered Asset Groups:', filteredGroups.length, filteredGroups);
                   }}
                 >
                   <option value="all">All Campaigns</option>
@@ -227,10 +254,10 @@ export default function ChangesPage() {
                 >
                   <option value="all">All Asset Groups</option>
                   {assetGroups
-                    .filter(ag => selectedCampaign === 'all' || ag.campaignId === Number(selectedCampaign))
+                    .filter(ag => selectedCampaign === 'all' || ag['Campaign ID'] === Number(selectedCampaign))
                     .map(assetGroup => (
                       <option key={assetGroup.id} value={assetGroup.id}>
-                        {assetGroup.name}
+                        {assetGroup.name} ({assetGroup['Campaign Name'] || 'Unknown Campaign'})
                       </option>
                     ))}
                 </select>
@@ -272,8 +299,8 @@ export default function ChangesPage() {
                       <th className="w-24 text-center">Action</th>
                       <th className="w-36 text-left">Asset Type</th>
                       <th className="w-80 text-left">Content</th>
-                      <th className="w-60 text-left">Campaign</th>
-                      <th className="w-60 text-left">Asset Group</th>
+                      <th className="w-60 text-left min-w-[200px]">Campaign</th>
+                      <th className="w-60 text-left min-w-[150px]">Asset Group</th>
                       <th className="w-40 text-left">Changed By</th>
                       <th className="w-32 text-center">Google Ads</th>
                     </tr>
