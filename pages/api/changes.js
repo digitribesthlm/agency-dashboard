@@ -16,6 +16,7 @@ export default async function handler(req, res) {
 
       // Build query for asset changes
       let query = {};
+      
       if (assetGroupId) {
         query.assetGroupId = Number(assetGroupId);
       }
@@ -34,71 +35,40 @@ export default async function handler(req, res) {
         query.changedAt = { $gte: startDate };
       }
 
-      console.log('Changes API query:', query);
-
-      // Get all changes for this asset group and campaign
+      // Get all changes
       const changes = await db.collection('asset_changes')
         .find(query)
         .sort({ changedAt: -1 })
-        .limit(100) // Increased limit
+        .limit(100)
         .toArray();
 
-      // Also get status changes for completeness
       const statusChanges = await db.collection('asset_status_changes')
         .find(query)
         .sort({ changedAt: -1 })
         .limit(100)
         .toArray();
 
-      console.log('Changes API Debug:', {
-        query,
-        changesCount: changes.length,
-        statusChangesCount: statusChanges.length,
-        sampleChanges: changes.slice(0, 2),
-        sampleStatusChanges: statusChanges.slice(0, 2)
-      });
-
-      // Get asset details for context using composite key (Asset Group ID + Asset ID)
-      const assetLookupKeys = [...new Set([...changes, ...statusChanges].map(c => `${c.assetGroupId}_${c.assetId}`))];
-      console.log('Asset lookup keys found in changes:', assetLookupKeys);
+      // Get asset details for context
+      const assetLookupKeys = [...new Set([...changes, ...statusChanges].map(c => `${c.campaignId}_${c.assetGroupId}_${c.assetId}`))];
       const assetDetails = {};
       
       if (assetLookupKeys.length > 0) {
-        // Build queries for both collections using composite key
         const pmaxQuery = [];
-        const pendingQuery = [];
-        
-        changes.forEach(change => {
+        [...changes, ...statusChanges].forEach(change => {
           const assetId = change.assetId;
           const assetGroupId = change.assetGroupId;
+          const campaignId = change.campaignId;
           
-          // Try both string and numeric versions of Asset ID
-          pmaxQuery.push({
-            'Asset ID': assetId,
-            'Asset Group ID': assetGroupId
-          });
-          pmaxQuery.push({
-            'Asset ID': Number(assetId),
-            'Asset Group ID': assetGroupId
-          });
-          
-          pendingQuery.push({
-            'Asset ID': assetId,
-            'Asset Group ID': assetGroupId
-          });
-          pendingQuery.push({
-            'Asset ID': Number(assetId),
-            'Asset Group ID': assetGroupId
-          });
+          pmaxQuery.push({ 'Asset ID': assetId, 'Asset Group ID': assetGroupId, 'Campaign ID': Number(campaignId) });
+          pmaxQuery.push({ 'Asset ID': Number(assetId), 'Asset Group ID': assetGroupId, 'Campaign ID': Number(campaignId) });
         });
         
-        // Check PMax_Assets collection with composite key
         const assets = await db.collection('PMax_Assets')
           .find({ $or: pmaxQuery })
           .toArray();
-        console.log('Found assets in PMax_Assets:', assets.length);
+          
         assets.forEach(asset => {
-          const key = `${asset['Asset Group ID']}_${asset['Asset ID']}`;
+          const key = `${asset['Campaign ID']}_${asset['Asset Group ID']}_${asset['Asset ID']}`;
           assetDetails[key] = {
             assetType: asset['Asset Type'],
             fieldType: asset['Field Type'],
@@ -108,47 +78,27 @@ export default async function handler(req, res) {
             assetGroupName: asset['Asset Group Name']
           };
         });
-
-        // Also check pending_headlines collection with composite key
-        const pendingHeadlines = await db.collection('pending_headlines')
-          .find({ $or: pendingQuery })
-          .toArray();
-        console.log('Found assets in pending_headlines:', pendingHeadlines.length);
-        pendingHeadlines.forEach(asset => {
-          const key = `${asset['Asset Group ID']}_${asset['Asset ID']}`;
-          // Only add if not already found in PMax_Assets (PMax_Assets takes precedence)
-          if (!assetDetails[key]) {
-            assetDetails[key] = {
-              assetType: asset['Asset Type'],
-              fieldType: asset['Field Type'],
-              textContent: asset['Text Content'],
-              assetUrl: asset['Asset URL'] || asset['Image URL'] || asset['Video URL'],
-              campaignName: asset['Campaign Name'] || 'Pending',
-              assetGroupName: asset['Asset Group Name'] || 'Pending'
-            };
-          }
-        });
       }
 
-      // Combine and sort all changes, adding asset context
+      // Combine and sort all changes
       const allChanges = [...changes, ...statusChanges]
         .map(change => {
-          const compositeKey = `${change.assetGroupId}_${change.assetId}`;
+          const compositeKey = `${change.campaignId}_${change.assetGroupId}_${change.assetId}`;
+          const assetDetail = assetDetails[compositeKey] || {};
           return {
             ...change,
-            assetDetails: assetDetails[compositeKey] || {},
+            assetDetails: assetDetail,
             changeType: change.action,
             needsGoogleAdsUpdate: ['pause', 'resume', 'remove', 'add'].includes(change.action)
           };
         })
         .sort((a, b) => new Date(b.changedAt) - new Date(a.changedAt))
-        .slice(0, 100); // Final limit
+        .slice(0, 100);
 
       return res.status(200).json({
         success: true,
         data: allChanges
       });
-
     } catch (error) {
       console.error('Error fetching changes:', error);
       return res.status(500).json({ message: 'Internal server error' });
