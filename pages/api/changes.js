@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       // Get asset details for context - try both PMax_Assets and pending collections
       const assetLookupKeys = [...new Set([...changes, ...statusChanges].map(c => ({
         'Campaign ID': Number(c.campaignId),
-        'Asset Group ID': Number(c.assetGroupId), 
+        'AssetGroup ID': Number(c.assetGroupId), 
         'Asset ID': isNaN(Number(c.assetId)) ? c.assetId : Number(c.assetId)
       })))];
       const assetDetails = {};
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
           .find({
             $or: assetLookupKeys.map(key => ({
               'Campaign ID': key['Campaign ID'],
-              'Asset Group ID': key['Asset Group ID'],
+              'AssetGroup ID': key['AssetGroup ID'],
               'Asset ID': key['Asset ID']
             }))
           })
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
           
         // Create lookup map using the same key format
         assets.forEach(asset => {
-          const key = `${asset['Campaign ID']}_${asset['Asset Group ID']}_${asset['Asset ID']}`;
+          const key = `${asset['Campaign ID']}_${asset['AssetGroup ID']}_${asset['Asset ID']}`;
           assetDetails[key] = {
             assetType: asset['Asset Type'],
             fieldType: asset['Field Type'],
@@ -101,14 +101,14 @@ export default async function handler(req, res) {
             .find({
               $or: assetLookupKeys.map(key => ({
                 'Campaign ID': key['Campaign ID'],
-                'Asset Group ID': key['Asset Group ID'],
+                'AssetGroup ID': key['AssetGroup ID'],
                 'Asset ID': key['Asset ID']
               }))
             })
             .toArray();
             
           pendingAssets.forEach(asset => {
-            const key = `${asset['Campaign ID']}_${asset['Asset Group ID']}_${asset['Asset ID']}`;
+            const key = `${asset['Campaign ID']}_${asset['AssetGroup ID']}_${asset['Asset ID']}`;
             if (!assetDetails[key]) {
               assetDetails[key] = {
                 assetType: asset['Asset Type'],
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
                 textContent: asset['Text Content'],
                 assetUrl: asset['Asset URL'] || asset['Image URL'] || asset['Video URL'],
                 campaignName: asset['Campaign Name'] || `Campaign ${asset['Campaign ID']}`,
-                assetGroupName: asset['Asset Group Name'] || `Asset Group ${asset['Asset Group ID']}`
+                assetGroupName: asset['Asset Group Name'] || `Asset Group ${asset['AssetGroup ID']}`
               };
             }
           });

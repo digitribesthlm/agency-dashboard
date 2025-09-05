@@ -442,7 +442,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
           if (data.success) {
             // Filter pending headlines for this specific asset group
             const filteredHeadlines = data.data.filter(headline => 
-              headline['Asset Group ID'] === assetGroup.assetGroupId
+              headline['AssetGroup ID'] === assetGroup.assetGroupId
             );
             setPendingHeadlines(filteredHeadlines);
           }
@@ -487,7 +487,7 @@ const AssetGroupDetail = ({ assetGroup }) => {
           assetId: asset['Asset ID'],
           accountId: asset['Account ID'],
           campaignId: asset['Campaign ID'],
-          assetGroupId: asset['Asset Group ID'],
+          assetGroupId: asset['AssetGroup ID'],
           reason: reason,
           block_level: blockLevel,
           blockedBy: session?.user?.email,

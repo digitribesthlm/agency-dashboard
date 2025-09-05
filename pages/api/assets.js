@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     // Group assets with performance data
     const groupedAssets = allAssets.reduce((acc, asset) => {
       const campaignId = asset['Campaign ID'];
-      const assetGroupId = asset['Asset Group ID'];
+      const assetGroupId = asset['AssetGroup ID'];
       
       // Add performance label to asset using Composite ID first, then fall back
       const assetIdStr = String(asset['Asset ID']);

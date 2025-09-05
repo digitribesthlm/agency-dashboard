@@ -1,0 +1,164 @@
+# MongoDB Collections Used in Agency Dashboard Project
+
+## Database: `agency`
+
+### Core Collections
+
+#### 1. **users**
+- **Purpose**: User authentication and account management
+- **Key Fields**: 
+  - `email` (unique)
+  - `password` (plain text)
+  - `name`
+  - `role` (admin/client)
+  - `Account ID`
+  - `clientId`
+- **Used in**: Authentication, user management, admin dashboard
+
+#### 2. **campaigns**
+- **Purpose**: Campaign data and configuration
+- **Key Fields**:
+  - `Campaign ID`
+  - `Campaign Name`
+  - `Campaign Status` (ENABLED/DRAFT/PAUSED)
+  - `Account ID`
+- **Used in**: Campaign management, dashboard display
+
+#### 3. **PMax_Assets**
+- **Purpose**: Main assets collection (denormalized structure)
+- **Key Fields**:
+  - `Asset ID`
+  - `Asset Type` (IMAGE/VIDEO/TEXT)
+  - `Asset Status` (ENABLED/PAUSED/REMOVED)
+  - `Campaign ID`
+  - `Asset Group ID`
+  - `Account ID`
+  - `Performance Label` (BEST/GOOD/LOW/UNKNOWN/PENDING)
+  - `Image URL` / `Video URL` / `Text Content`
+  - `Video ID` (for YouTube videos)
+  - `isPending` (boolean)
+  - `createdBy`, `createdAt`, `approved`
+- **Used in**: Asset management, dashboard display, performance tracking
+
+#### 4. **PMax_Assets_Performance**
+- **Purpose**: Performance metrics for assets
+- **Key Fields**:
+  - `Asset ID`
+  - `Performance Label`
+  - `Campaign ID`
+  - `Asset Group ID`
+  - `Account ID`
+- **Used in**: Performance analysis, asset optimization
+
+### Pending/Queue Collections
+
+#### 5. **pending_images**
+- **Purpose**: Images awaiting approval
+- **Key Fields**:
+  - `Asset ID`
+  - `Image URL`
+  - `Asset Type` (IMAGE)
+  - `Campaign ID`
+  - `Asset Group ID`
+  - `Account ID`
+  - `isPending` (true)
+  - `createdBy`, `createdAt`, `approved`
+- **Used in**: Image library, approval workflow
+
+#### 6. **pending_videos**
+- **Purpose**: Videos awaiting approval
+- **Key Fields**:
+  - `Asset ID`
+  - `Video ID`
+  - `Video Title`
+  - `Video URL`
+  - `Asset Type` (VIDEO)
+  - `Campaign ID`
+  - `Asset Group ID`
+  - `Account ID`
+  - `isPending` (true)
+  - `createdBy`, `createdAt`, `approved`
+- **Used in**: Video library, approval workflow
+
+#### 7. **pending_headlines**
+- **Purpose**: Headlines awaiting approval
+- **Key Fields**:
+  - `Asset ID`
+  - `Text Content`
+  - `Asset Type` (TEXT)
+  - `Field Type` (HEADLINE/LONG_HEADLINE)
+  - `Campaign ID`
+  - `Asset Group ID`
+  - `Account ID`
+  - `isPending` (true)
+  - `createdBy`, `createdAt`, `approved`
+- **Used in**: Headline management, approval workflow
+
+#### 8. **pending_descriptions**
+- **Purpose**: Descriptions awaiting approval
+- **Key Fields**:
+  - `Asset ID`
+  - `Text Content`
+  - `Asset Type` (TEXT)
+  - `Field Type` (DESCRIPTION)
+  - `Campaign ID`
+  - `Asset Group ID`
+  - `Account ID`
+  - `isPending` (true)
+  - `createdBy`, `createdAt`, `approved`
+- **Used in**: Description management, approval workflow
+
+### Change Tracking Collections
+
+#### 9. **asset_changes**
+- **Purpose**: Audit trail for all asset modifications
+- **Key Fields**:
+  - `assetId`
+  - `assetType` (image/video/headline/description)
+  - `action` (ADD/UPDATE/DELETE/APPROVE/REJECT)
+  - `campaignId`, `assetGroupId`, `accountId`
+  - `campaignName`, `assetGroupName`
+  - `data` (change details)
+  - `changedBy`, `changedAt`
+  - `userRole`
+- **Used in**: Change history, audit logging
+
+#### 10. **asset_status_changes**
+- **Purpose**: Status change tracking (pause/resume/remove)
+- **Key Fields**:
+  - `assetId`
+  - `assetType`
+  - `action` (pause/resume/remove)
+  - `campaignId`, `assetGroupId`, `accountId`
+  - `previousStatus`, `newStatus`
+  - `changedBy`, `changedAt`
+- **Used in**: Status change history, audit logging
+
+### Blacklist Collections
+
+#### 11. **PMAX_Assets_black_list**
+- **Purpose**: Blacklisted assets that should be blocked
+- **Key Fields**:
+  - `Asset ID`
+  - `Asset Type`
+  - `Campaign ID`
+  - `Asset Group ID`
+  - `Account ID`
+  - `reason`
+  - `blockedAt`, `blockedBy`
+- **Used in**: Asset blocking, compliance management
+
+## Data Flow
+
+1. **Assets** are created in `pending_*` collections
+2. **Approved assets** are moved to `PMax_Assets`
+3. **All changes** are logged in `asset_changes`
+4. **Status changes** are tracked in `asset_status_changes`
+5. **Performance data** is stored in `PMax_Assets_Performance`
+
+## Key Relationships
+
+- **Composite Key**: `Campaign ID + Asset Group ID + Asset ID` (unique identifier)
+- **Account ID**: Primary filter for multi-tenant data isolation
+- **Asset Status**: Controls visibility (REMOVED assets are filtered out)
+- **isPending**: Distinguishes between approved and pending assets

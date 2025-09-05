@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       'Asset ID': asset['Asset ID']?.$numberLong || asset['Asset ID'],
       'Account ID': asset['Account ID']?.$numberLong || asset['Account ID'],
       'Campaign ID': asset['Campaign ID']?.$numberLong || asset['Campaign ID'],
-      'Asset Group ID': asset['Asset Group ID']?.$numberLong || asset['Asset Group ID'],
+      'AssetGroup ID': asset['AssetGroup ID']?.$numberLong || asset['AssetGroup ID'],
       'Video Title': asset['Video Title'],
       'video_id': asset['Video ID'],
       'Performance Label': asset['Performance Max Label'],

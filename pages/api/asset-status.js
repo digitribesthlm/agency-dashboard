@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       let finalCampaignId = campaignId;
       if (!finalCampaignId) {
         const existingAsset = await db.collection('PMax_Assets')
-          .findOne({ 'Asset Group ID': Number(assetGroupId) });
+          .findOne({ 'AssetGroup ID': Number(assetGroupId) });
         if (existingAsset) {
           finalCampaignId = existingAsset['Campaign ID'];
         }
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       // Update the actual asset status in PMax_Assets collection
       const updateQuery = {
         'Asset ID': Number(assetId),
-        'Asset Group ID': Number(assetGroupId)
+        'AssetGroup ID': Number(assetGroupId)
       };
       if (finalCampaignId) {
         updateQuery['Campaign ID'] = Number(finalCampaignId);
