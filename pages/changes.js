@@ -325,11 +325,45 @@ export default function ChangesPage() {
                         </td>
                         <td className="text-left">
                           <div className="flex items-center gap-2">
-                            <span className="text-lg">
-                              {getAssetTypeIcon(change.assetDetails.assetType, change.assetDetails.fieldType)}
-                            </span>
+                            {/* Show actual image preview for IMAGE assets */}
+                            {(change.assetType === 'image' || change.assetDetails.assetType === 'IMAGE') && (change.data?.imageUrl || change.assetDetails.assetUrl) ? (
+                              <div className="relative group">
+                                <img 
+                                  src={change.data?.imageUrl || change.assetDetails.assetUrl} 
+                                  alt="Asset preview" 
+                                  className="w-12 h-12 object-cover rounded border"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'block';
+                                  }}
+                                />
+                                <div className="w-12 h-12 bg-base-200 rounded border flex items-center justify-center text-lg" style={{display: 'none'}}>
+                                  🖼️
+                                </div>
+                                {/* Hover preview */}
+                                <div className="absolute left-0 top-0 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                  <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-2 max-w-xs">
+                                    <img 
+                                      src={change.data?.imageUrl || change.assetDetails.assetUrl} 
+                                      alt="Asset preview" 
+                                      className="max-w-full max-h-48 object-contain rounded"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-lg">
+                                {getAssetTypeIcon(change.assetDetails.assetType, change.assetDetails.fieldType)}
+                              </span>
+                            )}
                             <div>
-                              <div className="font-medium">{change.assetDetails.assetType}</div>
+                              <div className="font-medium">
+                                {change.assetType === 'image' ? 'IMAGE' : 
+                                 change.assetType === 'video' ? 'VIDEO' : 
+                                 change.assetType === 'headline' ? 'TEXT' : 
+                                 change.assetType === 'description' ? 'TEXT' :
+                                 change.assetDetails.assetType || 'UNKNOWN'}
+                              </div>
                               {change.assetDetails.fieldType && (
                                 <div className="text-xs text-base-content/60">
                                   {change.assetDetails.fieldType}
@@ -339,9 +373,36 @@ export default function ChangesPage() {
                           </div>
                         </td>
                         <td className="text-left max-w-[200px]">
-                          <div className="truncate" title={change.assetDetails.textContent || 'N/A'}>
-                            {change.assetDetails.textContent || 'N/A'}
-                          </div>
+                          {/* Show appropriate content based on asset type */}
+                          {change.assetType === 'image' || change.assetDetails.assetType === 'IMAGE' ? (
+                            <div>
+                              <div className="text-xs text-blue-600 truncate" title={change.data?.imageUrl || change.assetDetails.assetUrl || 'No URL'}>
+                                {change.data?.imageUrl || change.assetDetails.assetUrl ? '🖼️ Image URL' : 'N/A'}
+                              </div>
+                              {(change.data?.imageUrl || change.assetDetails.assetUrl) && (
+                                <div className="text-xs text-base-content/60 truncate" title={change.data?.imageUrl || change.assetDetails.assetUrl}>
+                                  {change.data?.imageUrl || change.assetDetails.assetUrl}
+                                </div>
+                              )}
+                            </div>
+                          ) : change.assetType === 'video' || change.assetDetails.assetType === 'VIDEO' ? (
+                            <div>
+                              <div className="text-xs text-blue-600 truncate" title={change.data?.videoUrl || change.assetDetails.assetUrl || 'No URL'}>
+                                {change.data?.videoUrl || change.assetDetails.assetUrl ? '🎥 Video URL' : 'N/A'}
+                              </div>
+                              {(change.data?.videoUrl || change.assetDetails.assetUrl) && (
+                                <div className="text-xs text-base-content/60 truncate" title={change.data?.videoUrl || change.assetDetails.assetUrl}>
+                                  {change.data?.videoUrl || change.assetDetails.assetUrl}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="truncate" title={change.assetDetails.textContent || 'N/A'}>
+                                {change.assetDetails.textContent || 'N/A'}
+                              </div>
+                            </div>
+                          )}
                           <div className="text-xs text-base-content/60 truncate" title={`ID: ${change.assetId}`}>
                             ID: {change.assetId}
                           </div>

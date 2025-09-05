@@ -44,6 +44,11 @@ export default async function handler(req, res) {
         .sort({ changedAt: -1 })
         .limit(100)
         .toArray();
+        
+      console.log(`Found ${changes.length} changes from asset_changes collection`);
+      if (changes.length > 0) {
+        console.log('Sample change:', changes[0]);
+      }
 
       const statusChanges = await db.collection('asset_status_changes')
         .find(query)
@@ -85,6 +90,9 @@ export default async function handler(req, res) {
             assetGroupName: asset['Asset Group Name']
           };
         });
+        
+        console.log(`Found ${assets.length} assets from PMax_Assets collection`);
+        console.log('Asset details keys:', Object.keys(assetDetails));
 
         // Also try pending collections for missing assets
         const pendingCollections = ['pending_headlines', 'pending_descriptions', 'pending_images', 'pending_videos'];
