@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         // Fetch all videos from the database for library selection
         const pendingVideos = await db.collection('pending_videos').find({}).toArray();
         const pmaxVideos = await db.collection('PMax_Assets').find({
-          'Asset Type': 'VIDEO'
+          'Asset Type': 'YOUTUBE_VIDEO'
         }).toArray();
         
         console.log('Found videos from PMax_Assets:', pmaxVideos.length);
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         'Asset ID': assetId,
         'Video ID': videoId,
         'Video Title': videoTitle || 'Untitled Video',
-        'Asset Type': 'VIDEO',
+        'Asset Type': 'YOUTUBE_VIDEO',
         'Performance Label': 'PENDING',
         'Campaign ID': campaignId || 'unknown',
         'AssetGroup ID': Number(assetGroupId),

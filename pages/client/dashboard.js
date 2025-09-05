@@ -869,7 +869,7 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
             'Video ID': selectedVideo['Video ID'],
             'Video Title': selectedVideo['Video Title'],
             'Video URL': selectedVideo['Video URL'],
-            'Asset Type': 'VIDEO',
+            'Asset Type': 'YOUTUBE_VIDEO',
             'Performance Label': 'PENDING',
             'Campaign ID': assetGroup.campaignId || 'unknown',
             'AssetGroup ID': assetGroup.assetGroupId,

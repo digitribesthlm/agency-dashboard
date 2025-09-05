@@ -129,7 +129,7 @@ export default function ChangesPage() {
       if (fieldType === 'DESCRIPTION') return '📋';
       return '📝';
     } else if (assetType === 'IMAGE') return '🖼️';
-    else if (assetType === 'VIDEO') return '🎥';
+    else if (assetType === 'VIDEO' || assetType === 'YOUTUBE_VIDEO') return '🎥';
     return '📄';
   };
 
@@ -362,6 +362,7 @@ export default function ChangesPage() {
                                  change.assetType === 'video' ? 'VIDEO' : 
                                  change.assetType === 'headline' ? 'TEXT' : 
                                  change.assetType === 'description' ? 'TEXT' :
+                                 change.assetDetails.assetType === 'YOUTUBE_VIDEO' ? 'VIDEO' :
                                  change.assetDetails.assetType || 'UNKNOWN'}
                               </div>
                               {change.assetDetails.fieldType && (
@@ -385,7 +386,7 @@ export default function ChangesPage() {
                                 </div>
                               )}
                             </div>
-                          ) : change.assetType === 'video' || change.assetDetails.assetType === 'VIDEO' ? (
+                          ) : change.assetType === 'video' || change.assetDetails.assetType === 'VIDEO' || change.assetDetails.assetType === 'YOUTUBE_VIDEO' ? (
                             <div>
                               <div className="text-xs text-blue-600 truncate" title={change.data?.videoUrl || change.assetDetails.assetUrl || 'No URL'}>
                                 {change.data?.videoUrl || change.assetDetails.assetUrl ? '🎥 Video URL' : 'N/A'}
