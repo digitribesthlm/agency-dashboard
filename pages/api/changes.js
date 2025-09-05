@@ -120,9 +120,17 @@ export default async function handler(req, res) {
         .map(change => {
           const compositeKey = `${change.campaignId}_${change.assetGroupId}_${change.assetId}`;
           const assetDetail = assetDetails[compositeKey] || {};
+          
+          // Use campaign/asset group names from change record if available, otherwise from asset details
+          const finalAssetDetails = {
+            ...assetDetail,
+            campaignName: change.campaignName || assetDetail.campaignName || `Campaign ${change.campaignId}`,
+            assetGroupName: change.assetGroupName || assetDetail.assetGroupName || `Asset Group ${change.assetGroupId}`
+          };
+          
           return {
             ...change,
-            assetDetails: assetDetail,
+            assetDetails: finalAssetDetails,
             changeType: change.action,
             needsGoogleAdsUpdate: ['pause', 'resume', 'remove', 'add'].includes(change.action)
           };

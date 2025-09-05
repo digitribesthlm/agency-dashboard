@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
-      const { text, assetGroupId, campaignId, accountId, fieldType = 'HEADLINE' } = req.body;
+      const { text, assetGroupId, campaignId, campaignName, assetGroupName, accountId, fieldType = 'HEADLINE' } = req.body;
 
       if (!text || !assetGroupId) {
         return res.status(400).json({ message: 'Text and Asset Group ID are required' });
@@ -66,7 +66,9 @@ export default async function handler(req, res) {
         'Field Type': fieldType,
         'Performance Label': 'PENDING',
         'Campaign ID': campaignId || 'unknown',
+        'Campaign Name': campaignName || 'Unknown Campaign',
         'Asset Group ID': Number(assetGroupId),
+        'Asset Group Name': assetGroupName || 'Unknown Asset Group',
         'Account ID': Number(accountId) || 1,
         'isPending': true,
         'createdBy': session.user.email,
@@ -87,6 +89,8 @@ export default async function handler(req, res) {
       await db.collection('asset_changes').insertOne({
         assetGroupId: Number(assetGroupId),
         campaignId: campaignId || 'unknown',
+        campaignName: campaignName || 'Unknown Campaign',
+        assetGroupName: assetGroupName || 'Unknown Asset Group',
         accountId: Number(accountId) || 1,
         assetId: assetId,
         assetType: 'headline',

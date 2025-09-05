@@ -515,6 +515,8 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           text: newHeadline.trim(),
           assetGroupId: assetGroup.assetGroupId,
           campaignId: assetGroup.campaignId || 'unknown',
+          campaignName: assetGroup.campaignName || 'Unknown Campaign',
+          assetGroupName: assetGroup.assetGroupName || 'Unknown Asset Group',
           accountId: assetGroup.accountId || 1
         }),
       });
