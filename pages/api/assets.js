@@ -1,264 +1,249 @@
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth/[...nextauth]';
 import { connectToDatabase } from '../../lib/mongodb';
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
+  const session = await getServerSession(req, res, authOptions);
+  
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  const { db } = await connectToDatabase();
 
   try {
-    const { accountId } = req.query;
-    const { db } = await connectToDatabase();
-    
-    // Get assets and performance data (exclude REMOVED assets)
-    console.log('Fetching assets for account:', accountId);
-    const assets = await db.collection('PMax_Assets')
-      .find({ 
-        'Account ID': Number(accountId),
-        'Asset Status': { $ne: 'REMOVED' }, // Exclude removed assets
-        'Performance Label': { $ne: 'PENDING_DELETION' }, // Exclude pending deletion
-        'Status': { $ne: 'PENDING_DELETION' } // Exclude pending deletion
-      })
-      .toArray();
-    
-    console.log(`Total assets found: ${assets.length}`);
-    
-    // Debug: Check if any assets have REMOVED status
-    const removedAssets = await db.collection('PMax_Assets')
-      .find({ 
-        'Account ID': Number(accountId),
-        'Asset Status': 'REMOVED'
-      })
-      .toArray();
-    
-    console.log(`Assets with REMOVED status: ${removedAssets.length}`);
-    if (removedAssets.length > 0) {
-      console.log('Sample removed asset:', {
-        'Asset ID': removedAssets[0]['Asset ID'],
-        'Asset Type': removedAssets[0]['Asset Type'],
-        'Asset Status': removedAssets[0]['Asset Status']
-      });
+    switch (req.method) {
+      case 'GET':
+        return await handleGet(req, res, db);
+      case 'POST':
+        return await handlePost(req, res, db, session);
+      case 'PUT':
+        return await handlePut(req, res, db, session);
+      case 'DELETE':
+        return await handleDelete(req, res, db, session);
+      default:
+        return res.status(405).json({ error: 'Method not allowed' });
     }
-
-    // Get recent removal actions from asset_changes collection
-    const recentRemovals = await db.collection('asset_changes')
-      .find({ 
-        'accountId': Number(accountId),
-        'action': 'remove',
-        'changedAt': { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
-      })
-      .toArray();
-    
-    console.log(`Recent removal actions: ${recentRemovals.length}`);
-    
-    // Create a set of recently removed asset IDs for quick lookup
-    const recentlyRemovedAssetIds = new Set(
-      recentRemovals.map(removal => String(removal.assetId))
-    );
-    
-    console.log('Recently removed asset IDs:', Array.from(recentlyRemovedAssetIds));
-
-    // Filter out recently removed assets from the main assets array
-    const filteredAssets = assets.filter(asset => {
-      const assetIdStr = String(asset['Asset ID']);
-      const isRecentlyRemoved = recentlyRemovedAssetIds.has(assetIdStr);
-      if (isRecentlyRemoved) {
-        console.log(`Filtering out recently removed asset: ${assetIdStr}`);
-      }
-      return !isRecentlyRemoved;
-    });
-    
-    console.log(`Assets after filtering recent removals: ${filteredAssets.length}`);
-
-    // Get pending images and add them to the assets
-    const pendingImages = await db.collection('pending_images')
-      .find({ 
-        'Account ID': Number(accountId),
-        'Performance Label': { $ne: 'PENDING_DELETION' },
-        'Status': { $ne: 'PENDING_DELETION' }
-      })
-      .toArray();
-
-    // Combine filtered assets with pending images
-    const allAssets = [...filteredAssets, ...pendingImages];
-    
-    console.log(`Found ${filteredAssets.length} filtered assets and ${pendingImages.length} pending images`);
-    console.log('Sample pending image:', pendingImages[0]);
-
-    // Get performance data from PMax_Assets_Performance collection
-    const performance = await db.collection('PMax_Assets_Performance')
-      .find({ 'Account ID': Number(accountId) })
-      .toArray();
-
-    // Create maps of performance data keyed by Composite ID and by Asset ID (fallback)
-    const performanceMap = performance.reduce((acc, perf) => {
-      const assetIdStr = String(perf['Asset ID']);
-      const campaignIdStr = String(perf['Campaign ID']);
-      // Performance collection uses 'AssetGroup ID' (no space)
-      const assetGroupIdField = 'AssetGroup ID';
-      const assetGroupIdStr = String(perf[assetGroupIdField]);
-
-      const compositeId = `${campaignIdStr}_${assetGroupIdStr}_${assetIdStr}`;
-
-      acc.byComposite[compositeId] = perf['Performance Label'];
-      // Keep best-known label per Asset ID as a fallback (do not overwrite a non-UNKNOWN with UNKNOWN)
-      const existing = acc.byAsset[assetIdStr];
-      const incoming = perf['Performance Label'];
-      if (!existing || existing === 'UNKNOWN') {
-        acc.byAsset[assetIdStr] = incoming;
-      }
-      return acc;
-    }, { byComposite: {}, byAsset: {} });
-
-    // Group assets with performance data
-    const groupedAssets = allAssets.reduce((acc, asset) => {
-      const campaignId = asset['Campaign ID'];
-      const assetGroupId = asset['AssetGroup ID'];
-      
-      // Add performance label to asset using Composite ID first, then fall back
-      const assetIdStr = String(asset['Asset ID']);
-      const compositeId = `${String(campaignId)}_${String(assetGroupId)}_${assetIdStr}`;
-      // Use performance data from PMax_Assets_Performance collection if available,
-      // otherwise fall back to the existing Performance Max Label in the main collection
-      const performanceLabel = performanceMap.byComposite[compositeId]
-        || performanceMap.byAsset[assetIdStr]
-        || asset['Performance Label']
-        || asset['Performance Max Label']
-        || 'UNKNOWN';
-      
-      // Normalize URLs/fields due to upstream schema changes
-      const normalizedFinalUrl = asset['Final URL'] || asset['Landing Page URL'] || asset['Final Url'] || null;
-      const normalizedImageUrl = asset['Image URL'] || asset['Asset URL'] || null;
-
-      const assetWithPerformance = {
-        ...asset,
-        'Performance Label': performanceLabel,
-        'Composite ID': compositeId,
-        // Keep original fields, but also ensure normalized ones are present
-        'Final URL': normalizedFinalUrl,
-        'Image URL': normalizedImageUrl
-      };
-
-      // Initialize campaign if it doesn't exist
-      if (!acc[campaignId]) {
-        acc[campaignId] = {
-          campaignName: asset['Campaign Name'],
-          campaignId: campaignId,
-          campaignStatus: asset['Campaign Status'],
-          assetGroups: {}
-        };
-      }
-
-      // Initialize asset group if it doesn't exist
-      if (!acc[campaignId].assetGroups[assetGroupId]) {
-        acc[campaignId].assetGroups[assetGroupId] = {
-          assetGroupName: asset['Asset Group Name'],
-          assetGroupId: assetGroupId,
-          campaignId: campaignId,
-          campaignName: asset['Campaign Name'], // Add campaign name to asset group
-          accountId: asset['Account ID'], // Add account ID to asset group
-          assetGroupStatus: asset['Asset Group Status'],
-          headlines: [],
-          shortHeadlines: [],
-          longHeadlines: [],
-          descriptions: [],
-          images: [],
-          videos: [],
-          callToActions: [],
-          finalUrl: normalizedFinalUrl
-        };
-      }
-
-      const group = acc[campaignId].assetGroups[assetGroupId];
-
-      // Categorize asset with deduplication within the asset group
-      if (assetWithPerformance['Asset Type'] === 'TEXT') {
-        if (assetWithPerformance['Field Type'] === 'HEADLINE') {
-          // Short headlines (HEADLINE field type)
-          if (!group.shortHeadlines) group.shortHeadlines = [];
-          // Check if this exact asset already exists in this asset group
-          const headlineExists = group.shortHeadlines.some(h => 
-            h['Asset ID'] === assetWithPerformance['Asset ID']
-          );
-          if (!headlineExists) {
-            group.shortHeadlines.push(assetWithPerformance);
-          }
-        } else if (assetWithPerformance['Field Type'] === 'LONG_HEADLINE') {
-          // Long headlines (LONG_HEADLINE field type)
-          if (!group.longHeadlines) group.longHeadlines = [];
-          // Check if this exact asset already exists in this asset group
-          const longHeadlineExists = group.longHeadlines.some(h => 
-            h['Asset ID'] === assetWithPerformance['Asset ID']
-          );
-          if (!longHeadlineExists) {
-            group.longHeadlines.push(assetWithPerformance);
-          }
-        } else if (assetWithPerformance['Field Type'] === 'DESCRIPTION') {
-          // Check if this exact asset already exists in this asset group
-          const descriptionExists = group.descriptions.some(d => 
-            d['Asset ID'] === assetWithPerformance['Asset ID']
-          );
-          if (!descriptionExists) {
-            group.descriptions.push(assetWithPerformance);
-          }
-        } else if (assetWithPerformance['Text Content'] === 'Watch Video') {
-          // Check if this exact asset already exists in this asset group
-          const ctaExists = group.callToActions.some(c => 
-            c['Asset ID'] === assetWithPerformance['Asset ID']
-          );
-          if (!ctaExists) {
-            group.callToActions.push(assetWithPerformance);
-          }
-        }
-      } else if (assetWithPerformance['Asset Type'] === 'IMAGE') {
-        // Check if this exact asset already exists in this asset group
-        const imageExists = group.images.some(i => 
-          i['Asset ID'] === assetWithPerformance['Asset ID']
-        );
-        if (!imageExists) {
-          group.images.push(assetWithPerformance);
-        }
-      } else if (assetWithPerformance['Asset Type'] === 'VIDEO' || assetWithPerformance['Asset Type'] === 'YOUTUBE_VIDEO' || assetWithPerformance['Video ID']) {
-        // Ensure a normalized video url is present
-        if (!assetWithPerformance['Video URL']) {
-          assetWithPerformance['Video URL'] = asset['Video URL'] || asset['Asset URL'] || null;
-        }
-        // If Video ID missing, try to derive from URL (e.g., https://www.youtube.com/watch?v=XXXX)
-        if (!assetWithPerformance['Video ID'] && assetWithPerformance['Video URL']) {
-          try {
-            const url = new URL(assetWithPerformance['Video URL']);
-            const vParam = url.searchParams.get('v');
-            if (vParam) {
-              assetWithPerformance['Video ID'] = vParam;
-            }
-          } catch (_) {}
-        }
-        // Check if video already exists to prevent duplicates
-        const videoExists = group.videos.some(v => 
-          v['Asset ID'] === assetWithPerformance['Asset ID'] ||
-          (v['Video ID'] === assetWithPerformance['Video ID'] && assetWithPerformance['Video ID'])
-        );
-        // Allow append if we have any identifying info: Video ID, Title, or a Video URL
-        if (!videoExists && (assetWithPerformance['Video ID'] || assetWithPerformance['Video Title'] || assetWithPerformance['Video URL'])) {
-          group.videos.push(assetWithPerformance);
-        }
-      }
-
-      return acc;
-    }, {});
-
-    // Convert to array format
-    const formattedData = Object.values(groupedAssets).map(campaign => ({
-      ...campaign,
-      assetGroups: Object.values(campaign.assetGroups)
-    }));
-
-    return res.status(200).json({
-      success: true,
-      data: formattedData
-    });
-
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error('Assets API error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+// GET /api/assets?campaign_id=123&asset_group_id=456&asset_type=IMAGE&status=ACTIVE
+async function handleGet(req, res, db) {
+  const { campaign_id, asset_group_id, asset_type, status, all } = req.query;
+
+  // Build query - ALWAYS filter out REMOVED assets
+  const query = {
+    status: { $ne: 'REMOVED' }
+  };
+
+  if (campaign_id) query.campaign_id = campaign_id;
+  if (asset_group_id) query.asset_group_id = asset_group_id;
+  if (asset_type) query.asset_type = asset_type;
+  if (status) query.status = status;
+
+  // If 'all=true', get all assets regardless of campaign/asset_group
+  if (all === 'true') {
+    delete query.campaign_id;
+    delete query.asset_group_id;
+  }
+
+  console.log('Assets query:', query);
+
+  const assets = await db.collection('assets').find(query).toArray();
+  
+  // Transform data for frontend compatibility
+  const transformedAssets = assets.map(asset => ({
+        ...asset,
+    // Ensure consistent field names for frontend
+    'Asset ID': asset.asset_id,
+    'Asset Type': asset.asset_type,
+    'Asset URL': asset.asset_url,
+    'Campaign ID': asset.campaign_id,
+    'Campaign Name': asset.campaign_name,
+    'AssetGroup ID': asset.asset_group_id,
+    'Asset Group Name': asset.asset_group_name,
+    'Text Content': asset.text_content,
+    'Field Type': asset.field_type,
+    'Landing Page URL': asset.landing_page_url,
+    'Performance Label': asset.performance_label || 'UNKNOWN',
+    'Image URL': asset.asset_type === 'IMAGE' ? asset.asset_url : undefined,
+    'Video Title': asset.asset_type === 'YOUTUBE_VIDEO' ? asset.text_content : undefined,
+    'Video ID': asset.asset_type === 'YOUTUBE_VIDEO' ? asset.asset_url?.split('v=')[1] : undefined,
+    'Video URL': asset.asset_type === 'YOUTUBE_VIDEO' ? asset.asset_url : undefined
+  }));
+
+  return res.status(200).json(transformedAssets);
+}
+
+// POST /api/assets (add new asset)
+async function handlePost(req, res, db, session) {
+  const {
+    asset_type,
+    asset_url,
+    text_content,
+    field_type,
+    landing_page_url,
+    campaign_id,
+    campaign_name,
+    asset_group_id,
+    asset_group_name
+  } = req.body;
+
+  if (!asset_type || !campaign_id || !asset_group_id) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  // Generate unique asset_id
+  const asset_id = Date.now().toString();
+
+  const assetData = {
+    account_id: "3729097555",
+    campaign_id: campaign_id,
+    campaign_name: campaign_name || 'Unknown Campaign',
+    asset_group_id: asset_group_id,
+    asset_group_name: asset_group_name || 'Unknown Asset Group',
+    asset_id: asset_id,
+    asset_type: asset_type,
+    asset_url: asset_url,
+    text_content: text_content || '',
+    field_type: field_type || asset_type,
+    landing_page_url: landing_page_url || '',
+    status: 'ACTIVE',
+    is_pending: true, // User-added assets are pending
+    created_by: session.user.email,
+    last_modified_by: session.user.email,
+    created_at: new Date(),
+    last_modified: new Date()
+  };
+
+  // Insert asset
+  await db.collection('assets').insertOne(assetData);
+
+  // Log change
+  await logChange(db, {
+    asset_id: asset_id,
+    action: 'ADD',
+    asset_type: asset_type,
+    campaign_id: campaign_id,
+    campaign_name: campaign_name || 'Unknown Campaign',
+    asset_group_id: asset_group_id,
+    asset_group_name: asset_group_name || 'Unknown Asset Group',
+    changed_by: session.user.email,
+    changed_at: new Date(),
+    needs_google_ads_update: true
+  });
+
+  return res.status(201).json({ 
+    success: true, 
+    asset_id: asset_id,
+    message: 'Asset added successfully' 
+  });
+}
+
+// PUT /api/assets/:id (edit asset)
+async function handlePut(req, res, db, session) {
+  const { id } = req.query;
+  const updateData = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Asset ID required' });
+  }
+
+  // Get existing asset for change logging
+  const existingAsset = await db.collection('assets').findOne({ asset_id: id });
+  if (!existingAsset) {
+    return res.status(404).json({ error: 'Asset not found' });
+  }
+
+  // Update asset
+  const updateResult = await db.collection('assets').updateOne(
+    { asset_id: id },
+    { 
+      $set: {
+        ...updateData,
+        last_modified_by: session.user.email,
+        last_modified: new Date()
+      }
+    }
+  );
+
+  if (updateResult.matchedCount === 0) {
+    return res.status(404).json({ error: 'Asset not found' });
+  }
+
+  // Log change
+  await logChange(db, {
+    asset_id: id,
+    action: 'EDIT',
+    asset_type: existingAsset.asset_type,
+    campaign_id: existingAsset.campaign_id,
+    campaign_name: existingAsset.campaign_name,
+    asset_group_id: existingAsset.asset_group_id,
+    asset_group_name: existingAsset.asset_group_name,
+    changed_by: session.user.email,
+    changed_at: new Date(),
+    needs_google_ads_update: true
+  });
+
+  return res.status(200).json({ success: true, message: 'Asset updated successfully' });
+}
+
+// DELETE /api/assets/:id (mark as REMOVED)
+async function handleDelete(req, res, db, session) {
+  const { id } = req.query;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Asset ID required' });
+  }
+
+  // Get existing asset for change logging
+  const existingAsset = await db.collection('assets').findOne({ asset_id: id });
+  if (!existingAsset) {
+    return res.status(404).json({ error: 'Asset not found' });
+  }
+
+  // Mark as REMOVED instead of actually deleting
+  const updateResult = await db.collection('assets').updateOne(
+    { asset_id: id },
+    { 
+      $set: {
+        status: 'REMOVED',
+        last_modified_by: session.user.email,
+        last_modified: new Date()
+      }
+    }
+  );
+
+  if (updateResult.matchedCount === 0) {
+    return res.status(404).json({ error: 'Asset not found' });
+  }
+
+  // Log change
+  await logChange(db, {
+    asset_id: id,
+    action: 'REMOVE',
+    asset_type: existingAsset.asset_type,
+    campaign_id: existingAsset.campaign_id,
+    campaign_name: existingAsset.campaign_name,
+    asset_group_id: existingAsset.asset_group_id,
+    asset_group_name: existingAsset.asset_group_name,
+    changed_by: session.user.email,
+    changed_at: new Date(),
+    needs_google_ads_update: true
+  });
+
+  return res.status(200).json({ success: true, message: 'Asset removed successfully' });
+}
+
+// Helper function to log changes
+async function logChange(db, changeData) {
+  try {
+    await db.collection('asset_changes').insertOne(changeData);
+  } catch (error) {
+    console.error('Error logging change:', error);
+    // Don't fail the main operation if logging fails
+  }
+} 

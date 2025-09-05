@@ -1,160 +1,74 @@
-import { connectToDatabase } from '../../lib/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
+import { connectToDatabase } from '../../lib/mongodb';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
-
+  
   if (!session) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  if (req.method === 'GET') {
-    try {
-      const { assetGroupId, campaignId, accountId, filter, dateRange } = req.query;
-      const { db } = await connectToDatabase();
+  // Only admin users can view changes
+  if (session.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden - Admin access required' });
+  }
 
-      // Build query for asset changes - simplified approach
-      let query = {};
-      
-      // Only add filters if they exist and are valid
-      if (assetGroupId && assetGroupId !== 'undefined') {
-        query.assetGroupId = Number(assetGroupId);
-      }
-      if (campaignId && campaignId !== 'undefined') {
-        query.campaignId = Number(campaignId);
-      }
-      if (accountId && accountId !== 'undefined') {
-        query.accountId = Number(accountId);
-      }
+  const { db } = await connectToDatabase();
 
-      // Add date range filter
-      if (dateRange && dateRange !== 'all') {
-        const days = parseInt(dateRange);
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
-        query.changedAt = { $gte: startDate };
-      }
+  try {
+    const { asset_group_id, needs_update, limit = 100 } = req.query;
 
-      console.log('Changes API query:', query);
-
-      // Get all changes
-      const changes = await db.collection('asset_changes')
-        .find(query)
-        .sort({ changedAt: -1 })
-        .limit(100)
-        .toArray();
-        
-      console.log(`Found ${changes.length} changes from asset_changes collection`);
-      if (changes.length > 0) {
-        console.log('Sample change:', changes[0]);
-      }
-
-      const statusChanges = await db.collection('asset_status_changes')
-        .find(query)
-        .sort({ changedAt: -1 })
-        .limit(100)
-        .toArray();
-
-      console.log(`Found ${changes.length} changes and ${statusChanges.length} status changes`);
-
-      // Get asset details for context - try both PMax_Assets and pending collections
-      const assetLookupKeys = [...new Set([...changes, ...statusChanges].map(c => ({
-        'Campaign ID': Number(c.campaignId),
-        'AssetGroup ID': Number(c.assetGroupId), 
-        'Asset ID': isNaN(Number(c.assetId)) ? c.assetId : Number(c.assetId)
-      })))];
-      const assetDetails = {};
-      
-      if (assetLookupKeys.length > 0) {
-        // Try PMax_Assets first
-        const assets = await db.collection('PMax_Assets')
-          .find({
-            $or: assetLookupKeys.map(key => ({
-              'Campaign ID': key['Campaign ID'],
-              'AssetGroup ID': key['AssetGroup ID'],
-              'Asset ID': key['Asset ID']
-            }))
-          })
-          .toArray();
-          
-        // Create lookup map using the same key format
-        assets.forEach(asset => {
-          const key = `${asset['Campaign ID']}_${asset['AssetGroup ID']}_${asset['Asset ID']}`;
-          assetDetails[key] = {
-            assetType: asset['Asset Type'],
-            fieldType: asset['Field Type'],
-            textContent: asset['Text Content'],
-            assetUrl: asset['Asset URL'] || asset['Image URL'] || asset['Video URL'],
-            campaignName: asset['Campaign Name'],
-            assetGroupName: asset['Asset Group Name']
-          };
-        });
-        
-        console.log(`Found ${assets.length} assets from PMax_Assets collection`);
-        console.log('Asset details keys:', Object.keys(assetDetails));
-
-        // Also try pending collections for missing assets
-        const pendingCollections = ['pending_headlines', 'pending_descriptions', 'pending_images', 'pending_videos'];
-        for (const collectionName of pendingCollections) {
-          const pendingAssets = await db.collection(collectionName)
-            .find({
-              $or: assetLookupKeys.map(key => ({
-                'Campaign ID': key['Campaign ID'],
-                'AssetGroup ID': key['AssetGroup ID'],
-                'Asset ID': key['Asset ID']
-              }))
-            })
-            .toArray();
-            
-          pendingAssets.forEach(asset => {
-            const key = `${asset['Campaign ID']}_${asset['AssetGroup ID']}_${asset['Asset ID']}`;
-            if (!assetDetails[key]) {
-              assetDetails[key] = {
-                assetType: asset['Asset Type'],
-                fieldType: asset['Field Type'],
-                textContent: asset['Text Content'],
-                assetUrl: asset['Asset URL'] || asset['Image URL'] || asset['Video URL'],
-                campaignName: asset['Campaign Name'] || `Campaign ${asset['Campaign ID']}`,
-                assetGroupName: asset['Asset Group Name'] || `Asset Group ${asset['AssetGroup ID']}`
-              };
-            }
-          });
-        }
-      }
-
-      // Combine and sort all changes
-      const allChanges = [...changes, ...statusChanges]
-        .map(change => {
-          const compositeKey = `${change.campaignId}_${change.assetGroupId}_${change.assetId}`;
-          const assetDetail = assetDetails[compositeKey] || {};
-          
-          // Use campaign/asset group names from change record if available, otherwise from asset details
-          const finalAssetDetails = {
-            ...assetDetail,
-            campaignName: change.campaignName || assetDetail.campaignName || `Campaign ${change.campaignId}`,
-            assetGroupName: change.assetGroupName || assetDetail.assetGroupName || `Asset Group ${change.assetGroupId}`
-          };
-          
-          return {
-            ...change,
-            assetDetails: finalAssetDetails,
-            changeType: change.action,
-            needsGoogleAdsUpdate: ['pause', 'resume', 'remove', 'add'].includes(change.action)
-          };
-        })
-        .sort((a, b) => new Date(b.changedAt) - new Date(a.changedAt))
-        .slice(0, 100);
-
-      return res.status(200).json({
-        success: true,
-        data: allChanges
-      });
-    } catch (error) {
-      console.error('Error fetching changes:', error);
-      return res.status(500).json({ message: 'Internal server error' });
+    // Build query for asset_changes collection
+    const query = {};
+    
+    if (asset_group_id) {
+      query.asset_group_id = asset_group_id;
     }
-  }
+    
+    if (needs_update === 'true') {
+      query.needs_google_ads_update = true;
+    }
 
-  return res.status(405).json({ message: 'Method not allowed' });
+    console.log('Changes query:', query);
+
+    // Fetch changes from asset_changes collection only
+    const changes = await db.collection('asset_changes')
+      .find(query)
+      .sort({ changed_at: -1 })
+      .limit(parseInt(limit))
+      .toArray();
+
+    // Transform data for frontend compatibility
+    const transformedChanges = changes.map(change => ({
+      id: change._id,
+      asset_id: change.asset_id,
+      action: change.action,
+      asset_type: change.asset_type,
+      campaign_id: change.campaign_id,
+      campaign_name: change.campaign_name,
+      asset_group_id: change.asset_group_id,
+      asset_group_name: change.asset_group_name,
+      changed_by: change.changed_by,
+      changed_at: change.changed_at,
+      needs_google_ads_update: change.needs_google_ads_update,
+      
+      // Frontend compatibility fields
+      'Asset ID': change.asset_id,
+      'Asset Type': change.asset_type,
+      'Campaign ID': change.campaign_id,
+      'Campaign Name': change.campaign_name,
+      'AssetGroup ID': change.asset_group_id,
+      'Asset Group Name': change.asset_group_name,
+      'Changed By': change.changed_by,
+      'Changed At': change.changed_at,
+      'Action': change.action
+    }));
+
+    return res.status(200).json(transformedChanges);
+
+  } catch (error) {
+    console.error('Changes API error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }
