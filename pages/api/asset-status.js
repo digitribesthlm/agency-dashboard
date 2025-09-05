@@ -68,15 +68,6 @@ export default async function handler(req, res) {
         status: 'active'
       };
 
-      // Update the actual asset status in PMax_Assets collection
-      const updateQuery = {
-        'Asset ID': String(assetId), // Keep as string to match database format
-        'AssetGroup ID': Number(assetGroupId)
-      };
-      if (finalCampaignId) {
-        updateQuery['Campaign ID'] = Number(finalCampaignId);
-      }
-
       let updateField = {};
       if (action === 'pause') {
         updateField['Asset Status'] = 'PAUSED';
@@ -86,13 +77,85 @@ export default async function handler(req, res) {
         updateField['Asset Status'] = 'REMOVED';
       }
 
-      // Update the asset in PMax_Assets collection
-      const updateResult = await db.collection('PMax_Assets').updateMany(
-        updateQuery,
-        { $set: updateField }
-      );
+      // Try multiple query formats to handle different data types in the database
+      const queryVariants = [
+        {
+          'Asset ID': String(assetId),
+          'AssetGroup ID': Number(assetGroupId)
+        },
+        {
+          'Asset ID': Number(assetId),
+          'AssetGroup ID': Number(assetGroupId)
+        },
+        {
+          'Asset ID': String(assetId),
+          'AssetGroup ID': String(assetGroupId)
+        },
+        {
+          'Asset ID': Number(assetId),
+          'AssetGroup ID': String(assetGroupId)
+        }
+      ];
 
-      console.log(`Updated ${updateResult.modifiedCount} assets in PMax_Assets collection`);
+      // Add campaign ID to each variant if available
+      if (finalCampaignId) {
+        queryVariants.forEach(query => {
+          query['Campaign ID'] = Number(finalCampaignId);
+        });
+      }
+
+      let totalUpdated = 0;
+      let successfulQuery = null;
+
+      // Try each query variant until we find one that works
+      for (const query of queryVariants) {
+        console.log(`Trying query variant:`, query);
+        
+        const updateResult = await db.collection('PMax_Assets').updateMany(
+          query,
+          { $set: updateField }
+        );
+        
+        console.log(`Query result: ${updateResult.modifiedCount} assets updated`);
+        totalUpdated += updateResult.modifiedCount;
+        
+        if (updateResult.modifiedCount > 0) {
+          successfulQuery = query;
+          break; // Stop trying once we find a working query
+        }
+      }
+
+      console.log(`Total assets updated: ${totalUpdated}`);
+      
+      if (totalUpdated === 0) {
+        console.warn('No assets were updated with any query variant. Asset may not exist or data types may not match.');
+        
+        // Try to find any asset with this ID to debug
+        const debugQueries = [
+          { 'Asset ID': String(assetId) },
+          { 'Asset ID': Number(assetId) }
+        ];
+        
+        for (const debugQuery of debugQueries) {
+          const foundAsset = await db.collection('PMax_Assets').findOne(debugQuery);
+          if (foundAsset) {
+            console.log('Found asset with debug query:', debugQuery);
+            console.log('Asset data types:', {
+              'Asset ID': typeof foundAsset['Asset ID'],
+              'AssetGroup ID': typeof foundAsset['AssetGroup ID'],
+              'Campaign ID': typeof foundAsset['Campaign ID']
+            });
+            console.log('Asset values:', {
+              'Asset ID': foundAsset['Asset ID'],
+              'AssetGroup ID': foundAsset['AssetGroup ID'],
+              'Campaign ID': foundAsset['Campaign ID']
+            });
+            break;
+          }
+        }
+      } else {
+        console.log('Successfully updated asset with query:', successfulQuery);
+      }
 
       // Insert into asset status changes collection
       const result = await db.collection('asset_status_changes').insertOne(statusChange);

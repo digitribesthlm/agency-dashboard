@@ -10,22 +10,78 @@ export default async function handler(req, res) {
     const { db } = await connectToDatabase();
     
     // Get assets and performance data (exclude REMOVED assets)
+    console.log('Fetching assets for account:', accountId);
     const assets = await db.collection('PMax_Assets')
       .find({ 
         'Account ID': Number(accountId),
-        'Asset Status': { $ne: 'REMOVED' } // Exclude removed assets
+        'Asset Status': { $ne: 'REMOVED' }, // Exclude removed assets
+        'Performance Label': { $ne: 'PENDING_DELETION' }, // Exclude pending deletion
+        'Status': { $ne: 'PENDING_DELETION' } // Exclude pending deletion
       })
       .toArray();
+    
+    console.log(`Total assets found: ${assets.length}`);
+    
+    // Debug: Check if any assets have REMOVED status
+    const removedAssets = await db.collection('PMax_Assets')
+      .find({ 
+        'Account ID': Number(accountId),
+        'Asset Status': 'REMOVED'
+      })
+      .toArray();
+    
+    console.log(`Assets with REMOVED status: ${removedAssets.length}`);
+    if (removedAssets.length > 0) {
+      console.log('Sample removed asset:', {
+        'Asset ID': removedAssets[0]['Asset ID'],
+        'Asset Type': removedAssets[0]['Asset Type'],
+        'Asset Status': removedAssets[0]['Asset Status']
+      });
+    }
+
+    // Get recent removal actions from asset_changes collection
+    const recentRemovals = await db.collection('asset_changes')
+      .find({ 
+        'accountId': Number(accountId),
+        'action': 'remove',
+        'changedAt': { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
+      })
+      .toArray();
+    
+    console.log(`Recent removal actions: ${recentRemovals.length}`);
+    
+    // Create a set of recently removed asset IDs for quick lookup
+    const recentlyRemovedAssetIds = new Set(
+      recentRemovals.map(removal => String(removal.assetId))
+    );
+    
+    console.log('Recently removed asset IDs:', Array.from(recentlyRemovedAssetIds));
+
+    // Filter out recently removed assets from the main assets array
+    const filteredAssets = assets.filter(asset => {
+      const assetIdStr = String(asset['Asset ID']);
+      const isRecentlyRemoved = recentlyRemovedAssetIds.has(assetIdStr);
+      if (isRecentlyRemoved) {
+        console.log(`Filtering out recently removed asset: ${assetIdStr}`);
+      }
+      return !isRecentlyRemoved;
+    });
+    
+    console.log(`Assets after filtering recent removals: ${filteredAssets.length}`);
 
     // Get pending images and add them to the assets
     const pendingImages = await db.collection('pending_images')
-      .find({ 'Account ID': Number(accountId) })
+      .find({ 
+        'Account ID': Number(accountId),
+        'Performance Label': { $ne: 'PENDING_DELETION' },
+        'Status': { $ne: 'PENDING_DELETION' }
+      })
       .toArray();
 
-    // Combine assets with pending images
-    const allAssets = [...assets, ...pendingImages];
+    // Combine filtered assets with pending images
+    const allAssets = [...filteredAssets, ...pendingImages];
     
-    console.log(`Found ${assets.length} regular assets and ${pendingImages.length} pending images`);
+    console.log(`Found ${filteredAssets.length} filtered assets and ${pendingImages.length} pending images`);
     console.log('Sample pending image:', pendingImages[0]);
 
     // Get performance data from PMax_Assets_Performance collection
@@ -205,4 +261,4 @@ export default async function handler(req, res) {
     console.error('API Error:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
-} 
+}

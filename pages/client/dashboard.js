@@ -819,10 +819,8 @@ const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
           assetGroup.images = assetGroup.images.filter(img => String(img['Asset ID']) !== String(imageId));
         }
         
-        // Wait a moment for database update to complete, then refresh
-        setTimeout(() => {
-          onRefresh && onRefresh();
-        }, 500);
+        // Refresh immediately since we've improved the database update logic
+        onRefresh && onRefresh();
         
         console.log('Image removed successfully');
       } else {
