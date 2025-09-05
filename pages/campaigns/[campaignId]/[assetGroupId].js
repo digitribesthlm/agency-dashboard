@@ -118,8 +118,8 @@ export default function AssetGroupDetailPage() {
   // Delete asset using unified API
   const deleteAsset = async (assetId) => {
     try {
-      console.log('Sending DELETE request for asset:', assetId);
-      const response = await fetch(`/api/assets?id=${assetId}`, {
+      console.log('Sending DELETE request for asset:', assetId, 'in campaign:', campaignId, 'asset group:', assetGroupId);
+      const response = await fetch(`/api/assets?id=${assetId}&campaign_id=${campaignId}&asset_group_id=${assetGroupId}`, {
         method: 'DELETE'
       });
 
@@ -311,21 +311,38 @@ export default function AssetGroupDetailPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="breadcrumbs text-sm mb-6">
-          <ul>
-            <li><a href="/campaigns" className="link link-hover">Campaigns</a></li>
-            <li><a href={`/campaigns/${campaignId}`} className="link link-hover">Changes Tracking</a></li>
-            <li><a className="link link-hover">{campaign?.campaignName}</a></li>
-          </ul>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-6 py-8">
+          {/* Breadcrumb */}
+          <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+            <a href="/campaigns" className="hover:text-gray-700 transition-colors">Campaigns</a>
+            <span>›</span>
+            <a href={`/campaigns/${campaignId}`} className="hover:text-gray-700 transition-colors">{campaign?.campaignName}</a>
+            <span>›</span>
+            <span className="text-gray-700 font-medium">{assetGroup?.assetGroupName}</span>
+          </nav>
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">Asset Group: {assetGroup?.assetGroupName}</h1>
-          <h2 className="text-3xl font-bold">Headlines</h2>
-        </div>
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {assetGroup?.assetGroupName}
+                </h1>
+                <p className="text-gray-600 text-lg">
+                  Manage and optimize your advertising assets
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => router.back()}
+                  className="btn btn-outline btn-sm"
+                >
+                  ← Back
+                </button>
+              </div>
+            </div>
+          </div>
 
         {/* Admin-only Changes History section */}
         {session?.user?.role === 'admin' && (
@@ -339,33 +356,37 @@ export default function AssetGroupDetailPage() {
           </div>
         )}
 
-        {/* Short Headlines Section */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-2xl font-semibold text-gray-900">Short Headlines</h3>
-              <p className="text-sm text-gray-500 mt-1">HEADLINE field type</p>
-            </div>
-            <button 
-              className="btn btn-primary btn-lg"
-              onClick={() => {
-                setHeadlineType('HEADLINE');
-                setShowHeadlineModal(true);
-              }}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add Short Headline
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assets.headlines?.map((asset) => (
-              <div key={asset.asset_id} className={`group rounded-xl border hover:shadow-lg transition-all duration-200 overflow-hidden ${
-                asset.is_pending 
-                  ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
-                  : 'bg-white border-gray-200 hover:border-gray-300'
-              }`}>
+          {/* Short Headlines Section */}
+          <div className="mb-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Short Headlines</h3>
+                    <p className="text-sm text-gray-500 mt-1">{assets.headlines?.length || 0} assets • HEADLINE field type</p>
+                  </div>
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      setHeadlineType('HEADLINE');
+                      setShowHeadlineModal(true);
+                    }}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add Short Headline
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {assets.headlines?.map((asset) => (
+                    <div key={asset.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
+                      asset.is_pending 
+                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
+                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                    }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
@@ -446,37 +467,43 @@ export default function AssetGroupDetailPage() {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Long Headlines Section */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-2xl font-semibold text-gray-900">Long Headlines</h3>
-              <p className="text-sm text-gray-500 mt-1">LONG_HEADLINE field type</p>
+                  ))}
+                </div>
+              </div>
             </div>
-            <button 
-              className="btn btn-primary btn-lg"
-              onClick={() => {
-                setHeadlineType('LONG_HEADLINE');
-                setShowHeadlineModal(true);
-              }}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add Long Headline
-            </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assets.longHeadlines?.map((asset) => (
-              <div key={asset.asset_id} className={`group rounded-xl border hover:shadow-lg transition-all duration-200 overflow-hidden ${
-                asset.is_pending 
-                  ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
-                  : 'bg-white border-gray-200 hover:border-gray-300'
-              }`}>
+
+          {/* Long Headlines Section */}
+          <div className="mb-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Long Headlines</h3>
+                    <p className="text-sm text-gray-500 mt-1">{assets.longHeadlines?.length || 0} assets • LONG_HEADLINE field type</p>
+                  </div>
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      setHeadlineType('LONG_HEADLINE');
+                      setShowHeadlineModal(true);
+                    }}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add Long Headline
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {assets.longHeadlines?.map((asset) => (
+                    <div key={asset.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
+                      asset.is_pending 
+                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
+                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                    }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
@@ -557,33 +584,39 @@ export default function AssetGroupDetailPage() {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Images Section */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-2xl font-semibold text-gray-900">Images</h3>
-              <p className="text-sm text-gray-500 mt-1">{assets.images?.length || 0} assets</p>
+                  ))}
+                </div>
+              </div>
             </div>
-            <button 
-              className="btn btn-primary btn-lg"
-              onClick={() => {
-                fetchLibraryImages();
-                setShowImageLibrary(true);
-              }}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add from Library
-            </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {assets.images?.map((image) => (
-              <div key={image.asset_id} className="group bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 overflow-hidden">
+
+          {/* Images Section */}
+          <div className="mb-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Images</h3>
+                    <p className="text-sm text-gray-500 mt-1">{assets.images?.length || 0} assets</p>
+                  </div>
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      fetchLibraryImages();
+                      setShowImageLibrary(true);
+                    }}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add from Library
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {assets.images?.map((image) => (
+                    <div key={image.asset_id} className="group bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 overflow-hidden">
                 <div className="relative">
                   <img
                     src={image['Image URL'] || image['Asset URL']}
@@ -659,33 +692,39 @@ export default function AssetGroupDetailPage() {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Videos Section */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-2xl font-semibold text-gray-900">Videos</h3>
-              <p className="text-sm text-gray-500 mt-1">{assets.videos?.length || 0} assets</p>
+                  ))}
+                </div>
+              </div>
             </div>
-            <button 
-              className="btn btn-primary btn-lg"
-              onClick={() => {
-                fetchLibraryVideos();
-                setShowVideoLibrary(true);
-              }}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add from Library
-            </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assets.videos?.map((video) => (
-              <div key={video.asset_id} className="group bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 overflow-hidden">
+
+          {/* Videos Section */}
+          <div className="mb-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Videos</h3>
+                    <p className="text-sm text-gray-500 mt-1">{assets.videos?.length || 0} assets</p>
+                  </div>
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      fetchLibraryVideos();
+                      setShowVideoLibrary(true);
+                    }}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add from Library
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {assets.videos?.map((video) => (
+                    <div key={video.asset_id} className="group bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 overflow-hidden">
                 <div className="relative">
                   <div className="aspect-video bg-gray-200 rounded-t-xl overflow-hidden">
                     <iframe
@@ -754,30 +793,36 @@ export default function AssetGroupDetailPage() {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Landing Pages Section */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-2xl font-semibold text-gray-900">Landing Pages</h3>
-              <p className="text-sm text-gray-500 mt-1">{assets.landingPages?.length || 0} assets</p>
+                  ))}
+                </div>
+              </div>
             </div>
-            <button 
-              className="btn btn-primary btn-lg"
-              onClick={() => setShowLandingPageModal(true)}
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add Landing Page
-            </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assets.landingPages?.map((landingPage) => (
-              <div key={landingPage.asset_id} className="group bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 overflow-hidden">
+
+          {/* Landing Pages Section */}
+          <div className="mb-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Landing Pages</h3>
+                    <p className="text-sm text-gray-500 mt-1">{assets.landingPages?.length || 0} assets</p>
+                  </div>
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setShowLandingPageModal(true)}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add Landing Page
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {assets.landingPages?.map((landingPage) => (
+                    <div key={landingPage.asset_id} className="group bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 overflow-hidden">
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
@@ -867,15 +912,18 @@ export default function AssetGroupDetailPage() {
                   </div>
                 </div>
               </div>
-            ))}
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Pending Headlines Section */}
+          {/* Pending Headlines Section */}
         <div className="mb-8">
           <h3 className="text-xl font-semibold mb-4">Pending Headlines</h3>
           <div className="alert alert-warning">
             <span>No pending headlines</span>
+          </div>
           </div>
         </div>
       </div>

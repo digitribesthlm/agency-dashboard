@@ -193,21 +193,30 @@ async function handlePut(req, res, db, session) {
 
 // DELETE /api/assets/:id (mark as REMOVED)
 async function handleDelete(req, res, db, session) {
-  const { id } = req.query;
+  const { id, campaign_id, asset_group_id } = req.query;
 
   if (!id) {
     return res.status(400).json({ error: 'Asset ID required' });
   }
 
+  // Build query to be more specific - include campaign_id and asset_group_id if provided
+  const query = { asset_id: id };
+  if (campaign_id) {
+    query.campaign_id = campaign_id;
+  }
+  if (asset_group_id) {
+    query.asset_group_id = asset_group_id;
+  }
+
   // Get existing asset for change logging
-  const existingAsset = await db.collection('assets').findOne({ asset_id: id });
+  const existingAsset = await db.collection('assets').findOne(query);
   if (!existingAsset) {
     return res.status(404).json({ error: 'Asset not found' });
   }
 
   // Mark as REMOVED instead of actually deleting
   const updateResult = await db.collection('assets').updateOne(
-    { asset_id: id },
+    query,
     { 
       $set: {
         status: 'REMOVED',
