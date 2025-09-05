@@ -490,6 +490,8 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           const videosData = await videosResponse.json();
           if (videosData.success) {
             setAvailableVideos(videosData.data);
+            console.log('ACTUAL VIDEO DATA:', videosData.data[0]);
+
           }
         }
         
@@ -1044,7 +1046,8 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
         <figure className="aspect-video">
           <iframe
             className="w-full h-full"
-            src={`https://www.youtube.com/embed/${video['Video ID']}`}
+            src={`https://www.youtube.com/embed/${video['Asset URL']?.split('v=')[1]}`}
+
             title={video['Video Title'] || 'Video'}
             allowFullScreen
           />
