@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         const processedVideos = allVideos.map(video => ({
           ...video,
           'Video Title': video['Video Title'] || video['Text Content'] || 'Untitled Video',
-          'Video URL': video['Video URL'] || (video['Video ID'] ? `https://www.youtube.com/watch?v=${video['Video ID']}` : null)
+          'Video URL': video['Video URL'] || (video['Video ID'] ? `https://www.youtube.com/watch?v=${video['Video ID']}` : null )
         }));
         
         const uniqueVideos = processedVideos.filter((video, index, self) => {
