@@ -23,6 +23,7 @@ export default function AssetGroupDetailPage() {
   const [newLandingPage, setNewLandingPage] = useState('');
   const [libraryImages, setLibraryImages] = useState([]);
   const [libraryVideos, setLibraryVideos] = useState([]);
+  const [headlineType, setHeadlineType] = useState('HEADLINE');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -67,7 +68,15 @@ export default function AssetGroupDetailPage() {
         headlines: assetsData.filter(asset => asset.field_type === 'HEADLINE'),
         descriptions: assetsData.filter(asset => asset.field_type === 'DESCRIPTION'),
         longHeadlines: assetsData.filter(asset => asset.field_type === 'LONG_HEADLINE'),
-        landingPages: assetsData.filter(asset => asset.field_type === 'LANDING_PAGE')
+        landingPages: assetsData
+          .filter(asset => asset.landing_page_url && asset.landing_page_url.trim() !== '')
+          .reduce((unique, asset) => {
+            const url = asset.landing_page_url;
+            if (!unique.find(item => item.landing_page_url === url)) {
+              unique.push(asset);
+            }
+            return unique;
+          }, [])
       };
       
       setAssets(groupedAssets);
@@ -121,12 +130,28 @@ export default function AssetGroupDetailPage() {
     return false;
   };
 
-  // Handle adding headline
-  const handleAddHeadline = async () => {
+  // Handle adding short headline
+  const handleAddShortHeadline = async () => {
     if (newHeadline.trim()) {
       const success = await addAsset({
         asset_type: 'TEXT',
         field_type: 'HEADLINE',
+        text_content: newHeadline.trim()
+      });
+      
+      if (success) {
+        setNewHeadline('');
+        setShowHeadlineModal(false);
+      }
+    }
+  };
+
+  // Handle adding long headline
+  const handleAddLongHeadline = async () => {
+    if (newHeadline.trim()) {
+      const success = await addAsset({
+        asset_type: 'TEXT',
+        field_type: 'LONG_HEADLINE',
         text_content: newHeadline.trim()
       });
       
@@ -212,7 +237,21 @@ export default function AssetGroupDetailPage() {
     try {
       const response = await fetch('/api/assets?all=true&asset_type=IMAGE');
       const images = await response.json();
-      setLibraryImages(images);
+      
+      // Deduplicate images by asset_id (handle both string and number types)
+      const uniqueImages = images.reduce((unique, image) => {
+        const assetId = String(image.asset_id); // Convert to string for consistent comparison
+        if (!unique.find(item => String(item.asset_id) === assetId)) {
+          unique.push(image);
+        }
+        return unique;
+      }, []);
+      
+      console.log('Total images fetched:', images.length);
+      console.log('Unique images after deduplication:', uniqueImages.length);
+      console.log('Sample unique images:', uniqueImages.slice(0, 3).map(img => ({ id: img.asset_id, url: img['Image URL'] || img['Asset URL'] })));
+      
+      setLibraryImages(uniqueImages);
     } catch (error) {
       console.error('Error fetching library images:', error);
     }
@@ -223,7 +262,16 @@ export default function AssetGroupDetailPage() {
     try {
       const response = await fetch('/api/assets?all=true&asset_type=YOUTUBE_VIDEO');
       const videos = await response.json();
-      setLibraryVideos(videos);
+      
+      // Deduplicate videos by asset_id
+      const uniqueVideos = videos.reduce((unique, video) => {
+        if (!unique.find(item => item.asset_id === video.asset_id)) {
+          unique.push(video);
+        }
+        return unique;
+      }, []);
+      
+      setLibraryVideos(uniqueVideos);
     } catch (error) {
       console.error('Error fetching library videos:', error);
     }
@@ -282,7 +330,10 @@ export default function AssetGroupDetailPage() {
             </div>
             <button 
               className="btn btn-primary btn-lg"
-              onClick={() => setShowHeadlineModal(true)}
+              onClick={() => {
+                setHeadlineType('HEADLINE');
+                setShowHeadlineModal(true);
+              }}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -291,8 +342,12 @@ export default function AssetGroupDetailPage() {
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assets.headlines?.map((headline) => (
-              <div key={headline.asset_id} className="group bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 overflow-hidden">
+            {assets.headlines?.map((asset) => (
+              <div key={asset.asset_id} className={`group rounded-xl border hover:shadow-lg transition-all duration-200 overflow-hidden ${
+                asset.is_pending 
+                  ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
+                  : 'bg-white border-gray-200 hover:border-gray-300'
+              }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
@@ -304,27 +359,32 @@ export default function AssetGroupDetailPage() {
                       <span className="text-sm font-medium text-gray-500">HEADLINE</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="tooltip" data-tip={`Performance: ${headline['Performance Label'] || 'UNKNOWN'}`}>
+                      {asset.is_pending && (
+                        <div className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                          PENDING
+                        </div>
+                      )}
+                      <div className="tooltip" data-tip={`Performance: ${asset['Performance Label'] || 'UNKNOWN'}`}>
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                          headline['Performance Label'] === 'BEST' ? 'bg-green-100' :
-                          headline['Performance Label'] === 'GOOD' ? 'bg-blue-100' :
-                          headline['Performance Label'] === 'LOW' ? 'bg-red-100' :
-                          headline['Performance Label'] === 'PENDING' ? 'bg-yellow-100' :
+                          asset['Performance Label'] === 'BEST' ? 'bg-green-100' :
+                          asset['Performance Label'] === 'GOOD' ? 'bg-blue-100' :
+                          asset['Performance Label'] === 'LOW' ? 'bg-red-100' :
+                          asset['Performance Label'] === 'PENDING' ? 'bg-yellow-100' :
                           'bg-gray-100'
                         }`}>
-                          {headline['Performance Label'] === 'BEST' ? (
+                          {asset['Performance Label'] === 'BEST' ? (
                             <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
-                          ) : headline['Performance Label'] === 'GOOD' ? (
+                          ) : asset['Performance Label'] === 'GOOD' ? (
                             <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
                             </svg>
-                          ) : headline['Performance Label'] === 'LOW' ? (
+                          ) : asset['Performance Label'] === 'LOW' ? (
                             <svg className="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
                             </svg>
-                          ) : headline['Performance Label'] === 'PENDING' ? (
+                          ) : asset['Performance Label'] === 'PENDING' ? (
                             <svg className="w-3 h-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                             </svg>
@@ -336,7 +396,7 @@ export default function AssetGroupDetailPage() {
                         </div>
                       </div>
                       <button
-                        onClick={() => handleRemoveAsset(headline.asset_id)}
+                        onClick={() => handleRemoveAsset(asset.asset_id)}
                         className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded-lg"
                       >
                         <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
@@ -347,13 +407,13 @@ export default function AssetGroupDetailPage() {
                   </div>
                   
                   <div className="mb-4">
-                    <p className="text-lg font-medium text-gray-900 leading-relaxed">{headline['Text Content']}</p>
+                    <p className="text-lg font-medium text-gray-900 leading-relaxed">{asset['Text Content']}</p>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center gap-4">
-                      <span>ID: {headline.asset_id}</span>
-                      <span>{headline['Text Content']?.length || 0} chars</span>
+                      <span>ID: {asset.asset_id}</span>
+                      <span>{asset['Text Content']?.length || 0} chars</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -377,7 +437,10 @@ export default function AssetGroupDetailPage() {
             </div>
             <button 
               className="btn btn-primary btn-lg"
-              onClick={() => setShowHeadlineModal(true)}
+              onClick={() => {
+                setHeadlineType('LONG_HEADLINE');
+                setShowHeadlineModal(true);
+              }}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -386,8 +449,12 @@ export default function AssetGroupDetailPage() {
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assets.longHeadlines?.map((headline) => (
-              <div key={headline.asset_id} className="group bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-200 overflow-hidden">
+            {assets.longHeadlines?.map((asset) => (
+              <div key={asset.asset_id} className={`group rounded-xl border hover:shadow-lg transition-all duration-200 overflow-hidden ${
+                asset.is_pending 
+                  ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
+                  : 'bg-white border-gray-200 hover:border-gray-300'
+              }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
@@ -399,27 +466,32 @@ export default function AssetGroupDetailPage() {
                       <span className="text-sm font-medium text-gray-500">LONG_HEADLINE</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="tooltip" data-tip={`Performance: ${headline['Performance Label'] || 'UNKNOWN'}`}>
+                      {asset.is_pending && (
+                        <div className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                          PENDING
+                        </div>
+                      )}
+                      <div className="tooltip" data-tip={`Performance: ${asset['Performance Label'] || 'UNKNOWN'}`}>
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                          headline['Performance Label'] === 'BEST' ? 'bg-green-100' :
-                          headline['Performance Label'] === 'GOOD' ? 'bg-blue-100' :
-                          headline['Performance Label'] === 'LOW' ? 'bg-red-100' :
-                          headline['Performance Label'] === 'PENDING' ? 'bg-yellow-100' :
+                          asset['Performance Label'] === 'BEST' ? 'bg-green-100' :
+                          asset['Performance Label'] === 'GOOD' ? 'bg-blue-100' :
+                          asset['Performance Label'] === 'LOW' ? 'bg-red-100' :
+                          asset['Performance Label'] === 'PENDING' ? 'bg-yellow-100' :
                           'bg-gray-100'
                         }`}>
-                          {headline['Performance Label'] === 'BEST' ? (
+                          {asset['Performance Label'] === 'BEST' ? (
                             <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
-                          ) : headline['Performance Label'] === 'GOOD' ? (
+                          ) : asset['Performance Label'] === 'GOOD' ? (
                             <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
                             </svg>
-                          ) : headline['Performance Label'] === 'LOW' ? (
+                          ) : asset['Performance Label'] === 'LOW' ? (
                             <svg className="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
                             </svg>
-                          ) : headline['Performance Label'] === 'PENDING' ? (
+                          ) : asset['Performance Label'] === 'PENDING' ? (
                             <svg className="w-3 h-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                             </svg>
@@ -431,7 +503,7 @@ export default function AssetGroupDetailPage() {
                         </div>
                       </div>
                       <button
-                        onClick={() => handleRemoveAsset(headline.asset_id)}
+                        onClick={() => handleRemoveAsset(asset.asset_id)}
                         className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded-lg"
                       >
                         <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
@@ -442,13 +514,13 @@ export default function AssetGroupDetailPage() {
                   </div>
                   
                   <div className="mb-4">
-                    <p className="text-lg font-medium text-gray-900 leading-relaxed">{headline['Text Content']}</p>
+                    <p className="text-lg font-medium text-gray-900 leading-relaxed">{asset['Text Content']}</p>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center gap-4">
-                      <span>ID: {headline.asset_id}</span>
-                      <span>{headline['Text Content']?.length || 0} chars</span>
+                      <span>ID: {asset.asset_id}</span>
+                      <span>{asset['Text Content']?.length || 0} chars</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -734,22 +806,22 @@ export default function AssetGroupDetailPage() {
                       <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-sm font-medium text-gray-500">URL</span>
+                      <span className="text-sm font-medium text-gray-500">Landing Page URL</span>
                     </div>
                     <a 
-                      href={landingPage['Landing Page URL'] || landingPage['Asset URL']} 
+                      href={landingPage['Landing Page URL']} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 text-sm break-all underline"
                     >
-                      {landingPage['Landing Page URL'] || landingPage['Asset URL']}
+                      {landingPage['Landing Page URL']}
                     </a>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center gap-4">
                       <span>ID: {landingPage.asset_id}</span>
-                      <span>{(landingPage['Landing Page URL'] || landingPage['Asset URL'])?.length || 0} chars</span>
+                      <span>{landingPage['Landing Page URL']?.length || 0} chars</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -784,13 +856,16 @@ export default function AssetGroupDetailPage() {
           <div className="modal-box max-w-4xl">
             <h3 className="font-bold text-lg mb-4">Select Image</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-96 overflow-y-auto">
-              {libraryImages.map((image) => (
+              {libraryImages.map((image, index) => (
                 <div
-                  key={image.asset_id}
+                  key={`${image.asset_id}-${index}`}
                   className={`cursor-pointer border-2 rounded-lg p-2 ${
-                    selectedImage?.asset_id === image.asset_id ? 'border-primary' : 'border-transparent'
+                    String(selectedImage?.asset_id) === String(image.asset_id) ? 'border-primary' : 'border-transparent'
                   }`}
-                  onClick={() => setSelectedImage(image)}
+                  onClick={() => {
+                    console.log('Clicked image:', image.asset_id, 'Current selected:', selectedImage?.asset_id);
+                    setSelectedImage(image);
+                  }}
                 >
                   <img
                     src={image['Image URL'] || image['Asset URL']}
@@ -879,7 +954,9 @@ export default function AssetGroupDetailPage() {
       {showHeadlineModal && (
         <div className="modal modal-open">
           <div className="modal-box">
-            <h3 className="font-bold text-lg mb-4">Add Headline</h3>
+            <h3 className="font-bold text-lg mb-4">
+              Add {headlineType === 'HEADLINE' ? 'Short' : 'Long'} Headline
+            </h3>
             <textarea
               className="textarea textarea-bordered w-full mb-4"
               placeholder="Enter headline text..."
@@ -890,10 +967,10 @@ export default function AssetGroupDetailPage() {
             <div className="modal-action">
               <button
                 className="btn btn-primary"
-                onClick={handleAddHeadline}
+                onClick={headlineType === 'HEADLINE' ? handleAddShortHeadline : handleAddLongHeadline}
                 disabled={!newHeadline.trim()}
               >
-                Add Headline
+                Add {headlineType === 'HEADLINE' ? 'Short' : 'Long'} Headline
               </button>
               <button
                 className="btn"
