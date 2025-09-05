@@ -88,24 +88,12 @@ export default function ClientDashboard() {
         setCampaigns(data.data);
 
         if (selectedAssetGroup) {
-          console.log('Refreshing with selectedAssetGroup:', selectedAssetGroup);
-          console.log('Looking for campaignId:', selectedAssetGroup.campaignId);
-          console.log('Looking for assetGroupId:', selectedAssetGroup.assetGroupId);
-          
           const updatedCampaign = data.data.find(c => c.campaignId === selectedAssetGroup.campaignId);
-          console.log('Found updatedCampaign:', updatedCampaign);
-          
           if (updatedCampaign) {
             const updatedAssetGroup = updatedCampaign.assetGroups.find(ag => ag.assetGroupId === selectedAssetGroup.assetGroupId);
-            console.log('Found updatedAssetGroup:', updatedAssetGroup);
             if (updatedAssetGroup) {
               setSelectedAssetGroup(updatedAssetGroup);
-              console.log('Updated selectedAssetGroup with new data');
-            } else {
-              console.log('Could not find matching asset group in updated data');
             }
-          } else {
-            console.log('Could not find matching campaign in updated data');
           }
         }
       }
@@ -900,10 +888,9 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           setShowVideoLibrary(false);
           setSelectedVideo(null);
           
-          // Use the proper refresh mechanism instead of page reload
-          if (onRefresh) {
-            onRefresh();
-          }
+          // DON'T call onRefresh() - it overwrites local state with server data
+          // that doesn't include the newly added pending video yet
+          console.log('Video added successfully - local state updated, no refresh needed');
         } else {
           console.error('Failed to add video');
         }
@@ -968,11 +955,9 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           setShowImageLibrary(false);
           setSelectedImage(null);
           
-          // Use the proper refresh mechanism instead of page reload
-          if (onRefresh) {
-            console.log('Calling onRefresh...');
-            onRefresh();
-          }
+          // DON'T call onRefresh() - it overwrites local state with server data
+          // that doesn't include the newly added pending image yet
+          console.log('Image added successfully - local state updated, no refresh needed');
         } else {
           console.error('Failed to add image:', responseData);
         }
