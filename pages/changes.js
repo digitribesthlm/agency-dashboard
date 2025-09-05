@@ -26,65 +26,57 @@ export default function ChangesPage() {
 
   const fetchCampaignsAndAssetGroups = async () => {
     try {
-      console.log('Fetching campaigns and asset groups...');
-      // Fetch campaigns and asset groups from the assets API
-      const response = await fetch('/api/assets?accountId=3729097555');
-      console.log('Assets API response status:', response.status);
+      console.log('Fetching campaigns and asset groups from changes...');
+      // Get campaigns and asset groups from the changes API instead
+      const response = await fetch('/api/changes?accountId=1&filter=all&dateRange=all');
+      console.log('Changes API response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        console.log('Assets API response data:', data);
+        console.log('Changes API response data:', data);
         if (data.success) {
-          // Extract unique campaigns and asset groups from the data
+          // Extract unique campaigns and asset groups from the changes data
           const campaignSet = new Set();
           const assetGroupSet = new Set();
           
-          data.data.forEach(campaign => {
-            // ADD VALIDATION:
-            if (!campaign.campaignId || !campaign.campaignName) {
-              console.warn('⚠️ Invalid campaign data:', campaign);
+          data.data.forEach(change => {
+            // Add campaign info - use Set to ensure uniqueness
+            if (change.campaignId && change.assetDetails?.campaignName) {
+              campaignSet.add(JSON.stringify({
+                id: change.campaignId,
+                name: change.assetDetails.campaignName
+              }));
             }
             
-            campaignSet.add({
-              id: campaign.campaignId,
-              name: campaign.campaignName
-            });
-            campaign.assetGroups.forEach(assetGroup => {
-              assetGroupSet.add({
-                id: assetGroup.assetGroupId,
-                name: assetGroup.assetGroupName,
-                'Campaign ID': campaign.campaignId,
-                'Campaign Name': campaign.campaignName
-              });
-            });
+            // Add asset group info - use Set to ensure uniqueness
+            if (change.assetGroupId && change.assetDetails?.assetGroupName) {
+              assetGroupSet.add(JSON.stringify({
+                id: change.assetGroupId,
+                name: change.assetDetails.assetGroupName,
+                'Campaign ID': change.campaignId,
+                'Campaign Name': change.assetDetails.campaignName
+              }));
+            }
           });
           
-          const campaignsArray = Array.from(campaignSet);
-          const assetGroupsArray = Array.from(assetGroupSet);
+          // Convert back to objects
+          const campaignsArray = Array.from(campaignSet).map(item => JSON.parse(item));
+          const assetGroupsArray = Array.from(assetGroupSet).map(item => JSON.parse(item));
           
-          console.log('Found campaigns:', campaignsArray.length);
-          console.log('Found asset groups:', assetGroupsArray.length);
+          console.log('Processed campaigns from changes:', campaignsArray.length);
+          console.log('Processed asset groups from changes:', assetGroupsArray.length);
+          console.log('Sample campaign:', campaignsArray[0]);
+          console.log('Sample asset group:', assetGroupsArray[0]);
           
           setCampaigns(campaignsArray);
           setAssetGroups(assetGroupsArray);
-          
-          // ADD THESE DEBUG LINES:
-          console.log('🔍 DEBUG - Campaigns loaded:', campaignsArray.length, campaignsArray);
-          console.log('🔍 DEBUG - Asset Groups loaded:', assetGroupsArray.length, assetGroupsArray);
-          console.log('🔍 DEBUG - Sample Asset Group structure:', assetGroupsArray[0]);
+        } else {
+          console.error('Changes API returned success: false');
         }
       } else {
-        console.error('Assets API error:', response.status);
+        console.error('Changes API failed:', response.status);
       }
     } catch (error) {
       console.error('Error fetching campaigns and asset groups:', error);
-      
-      // ADD DETAILED ERROR HANDLING:
-      if (error.message.includes('fetch')) {
-        console.error('❌ Network error - check if API is running');
-      }
-      if (response && !response.ok) {
-        console.error('❌ API error - status:', response.status);
-      }
     }
   };
 
@@ -93,7 +85,7 @@ export default function ChangesPage() {
       setLoading(true);
       console.log('Fetching changes with params:', { filter, dateRange, selectedCampaign, selectedAssetGroup });
       
-      let url = `/api/changes?accountId=3729097555&filter=${filter}&dateRange=${dateRange}`;
+      let url = `/api/changes?accountId=1&filter=${filter}&dateRange=${dateRange}`;
       if (selectedCampaign !== 'all') {
         url += `&campaignId=${selectedCampaign}`;
       }
@@ -142,13 +134,28 @@ export default function ChangesPage() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now - date) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } else if (diffInHours < 24 * 7) {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } else {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+    }
   };
 
   const filteredChanges = changes.filter(change => {
@@ -295,20 +302,20 @@ export default function ChangesPage() {
                 <table className="table table-zebra w-full">
                   <thead>
                     <tr>
-                      <th className="w-40 text-left">Time</th>
-                      <th className="w-24 text-center">Action</th>
-                      <th className="w-36 text-left">Asset Type</th>
-                      <th className="w-80 text-left">Content</th>
-                      <th className="w-60 text-left min-w-[200px]">Campaign</th>
-                      <th className="w-60 text-left min-w-[150px]">Asset Group</th>
-                      <th className="w-40 text-left">Changed By</th>
-                      <th className="w-32 text-center">Google Ads</th>
+                      <th className="w-32 text-left">Time</th>
+                      <th className="w-20 text-center">Action</th>
+                      <th className="w-28 text-left">Asset Type</th>
+                      <th className="text-left min-w-[200px]">Content</th>
+                      <th className="w-48 text-left min-w-[180px]">Campaign</th>
+                      <th className="w-48 text-left min-w-[160px]">Asset Group</th>
+                      <th className="w-32 text-left">Changed By</th>
+                      <th className="w-24 text-center">Google Ads</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredChanges.map((change, index) => (
                       <tr key={index} className="hover">
-                        <td className="text-sm text-left">
+                        <td className="text-xs text-left whitespace-nowrap">
                           {formatDate(change.changedAt)}
                         </td>
                         <td className="text-center">
@@ -331,11 +338,11 @@ export default function ChangesPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="text-left">
-                          <div className="truncate" title={change.assetDetails.textContent}>
+                        <td className="text-left max-w-[200px]">
+                          <div className="truncate" title={change.assetDetails.textContent || 'N/A'}>
                             {change.assetDetails.textContent || 'N/A'}
                           </div>
-                          <div className="text-xs text-base-content/60">
+                          <div className="text-xs text-base-content/60 truncate" title={`ID: ${change.assetId}`}>
                             ID: {change.assetId}
                           </div>
                           {/* Image preview for image assets */}
@@ -363,13 +370,13 @@ export default function ChangesPage() {
                             </div>
                           )}
                         </td>
-                        <td className="text-left">
-                          <div className="truncate" title={change.assetDetails.campaignName}>
+                        <td className="text-left max-w-[180px]">
+                          <div className="truncate" title={change.assetDetails.campaignName || 'N/A'}>
                             {change.assetDetails.campaignName || 'N/A'}
                           </div>
                         </td>
-                        <td className="text-left">
-                          <div className="truncate" title={change.assetDetails.assetGroupName}>
+                        <td className="text-left max-w-[160px]">
+                          <div className="truncate" title={change.assetDetails.assetGroupName || 'N/A'}>
                             {change.assetDetails.assetGroupName || 'N/A'}
                           </div>
                         </td>

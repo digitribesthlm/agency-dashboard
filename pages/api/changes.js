@@ -53,16 +53,16 @@ export default async function handler(req, res) {
 
       console.log(`Found ${changes.length} changes and ${statusChanges.length} status changes`);
 
-      // Get asset details for context using proper MongoDB query
+      // Get asset details for context - try both PMax_Assets and pending collections
       const assetLookupKeys = [...new Set([...changes, ...statusChanges].map(c => ({
         'Campaign ID': Number(c.campaignId),
         'Asset Group ID': Number(c.assetGroupId), 
-        'Asset ID': Number(c.assetId)
+        'Asset ID': isNaN(Number(c.assetId)) ? c.assetId : Number(c.assetId)
       })))];
       const assetDetails = {};
       
       if (assetLookupKeys.length > 0) {
-        // Use proper MongoDB query with $or
+        // Try PMax_Assets first
         const assets = await db.collection('PMax_Assets')
           .find({
             $or: assetLookupKeys.map(key => ({
@@ -85,6 +85,34 @@ export default async function handler(req, res) {
             assetGroupName: asset['Asset Group Name']
           };
         });
+
+        // Also try pending collections for missing assets
+        const pendingCollections = ['pending_headlines', 'pending_descriptions', 'pending_images', 'pending_videos'];
+        for (const collectionName of pendingCollections) {
+          const pendingAssets = await db.collection(collectionName)
+            .find({
+              $or: assetLookupKeys.map(key => ({
+                'Campaign ID': key['Campaign ID'],
+                'Asset Group ID': key['Asset Group ID'],
+                'Asset ID': key['Asset ID']
+              }))
+            })
+            .toArray();
+            
+          pendingAssets.forEach(asset => {
+            const key = `${asset['Campaign ID']}_${asset['Asset Group ID']}_${asset['Asset ID']}`;
+            if (!assetDetails[key]) {
+              assetDetails[key] = {
+                assetType: asset['Asset Type'],
+                fieldType: asset['Field Type'],
+                textContent: asset['Text Content'],
+                assetUrl: asset['Asset URL'] || asset['Image URL'] || asset['Video URL'],
+                campaignName: asset['Campaign Name'] || `Campaign ${asset['Campaign ID']}`,
+                assetGroupName: asset['Asset Group Name'] || `Asset Group ${asset['Asset Group ID']}`
+              };
+            }
+          });
+        }
       }
 
       // Combine and sort all changes
