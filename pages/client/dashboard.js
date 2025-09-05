@@ -1507,7 +1507,26 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
             <h2 className="card-title">Videos</h2>
             <button 
               className="btn btn-primary btn-sm"
-              onClick={() => setShowVideoLibrary(true)}
+              onClick={async () => {
+                setShowVideoLibrary(true);
+                // Fetch videos when opening the library
+                try {
+                  const videosResponse = await fetch('/api/videos?all=true');
+                  if (videosResponse.ok) {
+                    const videosData = await videosResponse.json();
+                    console.log('Videos API response data:', videosData);
+                    console.log('Number of videos received:', videosData.data?.length);
+                    if (videosData.success) {
+                      setAvailableVideos(videosData.data);
+                      console.log('Available videos set:', videosData.data.length);
+                    }
+                  } else {
+                    console.error('Videos API failed:', videosResponse.status);
+                  }
+                } catch (error) {
+                  console.error('Error fetching videos:', error);
+                }
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

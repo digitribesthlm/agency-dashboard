@@ -22,13 +22,31 @@ export default async function handler(req, res) {
           'Asset Type': 'VIDEO'
         }).toArray();
         
+        console.log('Found videos from PMax_Assets:', pmaxVideos.length);
+        if (pmaxVideos.length > 0) {
+          console.log('Sample video from PMax_Assets:', pmaxVideos[0]);
+        }
+        
         // Combine and deduplicate (fallback to Video ID when Asset ID is missing)
         const allVideos = [...pendingVideos, ...pmaxVideos];
-        const uniqueVideos = allVideos.filter((video, index, self) => {
+        
+        // Add missing fields for frontend compatibility
+        const processedVideos = allVideos.map(video => ({
+          ...video,
+          'Video Title': video['Video Title'] || video['Text Content'] || 'Untitled Video',
+          'Video URL': video['Video URL'] || (video['Video ID'] ? `https://www.youtube.com/watch?v=${video['Video ID']}` : null)
+        }));
+        
+        const uniqueVideos = processedVideos.filter((video, index, self) => {
           const getKey = (v) => v['Asset ID'] || v['Video ID'] || v.videoId || `${v['Campaign ID']}-${v['Video Title']}`;
           const key = getKey(video);
           return index === self.findIndex((vid) => getKey(vid) === key);
         });
+        
+        console.log('Total unique videos:', uniqueVideos.length);
+        if (uniqueVideos.length > 0) {
+          console.log('Sample unique video:', uniqueVideos[0]);
+        }
         
         return res.status(200).json({ 
           success: true, 
