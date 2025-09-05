@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       } else if (assetGroupId) {
         // Fetch pending images for specific asset group
         const pendingImages = await db.collection('pending_images').find({
-          'Asset Group ID': Number(assetGroupId)
+          'AssetGroup ID': Number(assetGroupId)
         }).toArray();
         
         return res.status(200).json({ 
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
         'Asset Type': 'IMAGE',
         'Performance Label': 'PENDING',
         'Campaign ID': campaignId || 'unknown',
-        'Asset Group ID': Number(assetGroupId),
+        'AssetGroup ID': Number(assetGroupId),
         'Account ID': Number(accountId) || 1,
         'isPending': true,
         'createdBy': 'system@agency.com',

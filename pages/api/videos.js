@@ -55,7 +55,7 @@ export default async function handler(req, res) {
       } else if (assetGroupId) {
         // Fetch pending videos for specific asset group
         const pendingVideos = await db.collection('pending_videos').find({
-          'Asset Group ID': Number(assetGroupId)
+          'AssetGroup ID': Number(assetGroupId)
         }).toArray();
         
         return res.status(200).json({ 
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         'Asset Type': 'VIDEO',
         'Performance Label': 'PENDING',
         'Campaign ID': campaignId || 'unknown',
-        'Asset Group ID': Number(assetGroupId),
+        'AssetGroup ID': Number(assetGroupId),
         'Account ID': Number(accountId) || 1,
         'isPending': true,
         'createdBy': session.user.email,

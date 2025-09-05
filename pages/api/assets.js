@@ -37,8 +37,8 @@ export default async function handler(req, res) {
     const performanceMap = performance.reduce((acc, perf) => {
       const assetIdStr = String(perf['Asset ID']);
       const campaignIdStr = String(perf['Campaign ID']);
-      // Performance collection sometimes uses 'AssetGroup ID' (no space) vs 'Asset Group ID'
-      const assetGroupIdField = perf['AssetGroup ID'] !== undefined ? 'AssetGroup ID' : 'Asset Group ID';
+      // Performance collection uses 'AssetGroup ID' (no space)
+      const assetGroupIdField = 'AssetGroup ID';
       const assetGroupIdStr = String(perf[assetGroupIdField]);
 
       const compositeId = `${campaignIdStr}_${assetGroupIdStr}_${assetIdStr}`;

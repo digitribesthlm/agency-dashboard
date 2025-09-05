@@ -15,13 +15,13 @@ export default async function handler(req, res) {
       const { db } = await connectToDatabase();
 
       if (!assetGroupId) {
-        return res.status(400).json({ message: 'Asset Group ID is required' });
+        return res.status(400).json({ message: 'AssetGroup ID is required' });
       }
 
       // Get pending headlines for this asset group
       const pendingHeadlines = await db.collection('pending_headlines')
         .find({ 
-          'Asset Group ID': Number(assetGroupId),
+          'AssetGroup ID': Number(assetGroupId),
           approved: false 
         })
         .sort({ createdAt: -1 })
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       const { text, assetGroupId, campaignId, campaignName, assetGroupName, accountId, fieldType = 'HEADLINE' } = req.body;
 
       if (!text || !assetGroupId) {
-        return res.status(400).json({ message: 'Text and Asset Group ID are required' });
+        return res.status(400).json({ message: 'Text and AssetGroup ID are required' });
       }
 
       // Validate length by field type: HEADLINE ≤30, LONG_HEADLINE ≤90
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
         'Performance Label': 'PENDING',
         'Campaign ID': campaignId || 'unknown',
         'Campaign Name': campaignName || 'Unknown Campaign',
-        'Asset Group ID': Number(assetGroupId),
+        'AssetGroup ID': Number(assetGroupId),
         'Asset Group Name': assetGroupName || 'Unknown Asset Group',
         'Account ID': Number(accountId) || 1,
         'isPending': true,
