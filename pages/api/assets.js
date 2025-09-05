@@ -17,6 +17,17 @@ export default async function handler(req, res) {
       })
       .toArray();
 
+    // Get pending images and add them to the assets
+    const pendingImages = await db.collection('pending_images')
+      .find({ 'Account ID': Number(accountId) })
+      .toArray();
+
+    // Combine assets with pending images
+    const allAssets = [...assets, ...pendingImages];
+    
+    console.log(`Found ${assets.length} regular assets and ${pendingImages.length} pending images`);
+    console.log('Sample pending image:', pendingImages[0]);
+
     // Get performance data from PMax_Assets_Performance collection
     const performance = await db.collection('PMax_Assets_Performance')
       .find({ 'Account ID': Number(accountId) })
@@ -43,7 +54,7 @@ export default async function handler(req, res) {
     }, { byComposite: {}, byAsset: {} });
 
     // Group assets with performance data
-    const groupedAssets = assets.reduce((acc, asset) => {
+    const groupedAssets = allAssets.reduce((acc, asset) => {
       const campaignId = asset['Campaign ID'];
       const assetGroupId = asset['Asset Group ID'];
       

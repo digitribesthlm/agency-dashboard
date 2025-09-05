@@ -88,12 +88,24 @@ export default function ClientDashboard() {
         setCampaigns(data.data);
 
         if (selectedAssetGroup) {
+          console.log('Refreshing with selectedAssetGroup:', selectedAssetGroup);
+          console.log('Looking for campaignId:', selectedAssetGroup.campaignId);
+          console.log('Looking for assetGroupId:', selectedAssetGroup.assetGroupId);
+          
           const updatedCampaign = data.data.find(c => c.campaignId === selectedAssetGroup.campaignId);
+          console.log('Found updatedCampaign:', updatedCampaign);
+          
           if (updatedCampaign) {
             const updatedAssetGroup = updatedCampaign.assetGroups.find(ag => ag.assetGroupId === selectedAssetGroup.assetGroupId);
+            console.log('Found updatedAssetGroup:', updatedAssetGroup);
             if (updatedAssetGroup) {
               setSelectedAssetGroup(updatedAssetGroup);
+              console.log('Updated selectedAssetGroup with new data');
+            } else {
+              console.log('Could not find matching asset group in updated data');
             }
+          } else {
+            console.log('Could not find matching campaign in updated data');
           }
         }
       }
@@ -411,6 +423,8 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
   const [pendingLandingPages, setPendingLandingPages] = useState([]);
   
   console.log('AssetGroupDetail rendering with assetGroup:', assetGroup?.assetGroupName);
+  console.log('AssetGroup images:', assetGroup?.images);
+  console.log('AssetGroup images length:', assetGroup?.images?.length);
   
   const filteredHeadlines = assetGroup?.headlines || [];
   const filteredShortHeadlines = assetGroup?.shortHeadlines || [];
@@ -418,6 +432,9 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
   const filteredDescriptions = assetGroup?.descriptions || [];
   const filteredImages = assetGroup?.images || [];
   const filteredVideos = assetGroup?.videos || [];
+  
+  console.log('Filtered images:', filteredImages);
+  console.log('Filtered images length:', filteredImages.length);
 
   // Fetch changes history and pending content when component mounts
   useEffect(() => {
@@ -856,9 +873,37 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
         });
 
         if (response.ok) {
+          const responseData = await response.json();
+          
+          // Add the new video to the local state immediately
+          const newVideoData = {
+            'Asset ID': responseData.data.assetId,
+            'Video ID': selectedVideo['Video ID'],
+            'Video Title': selectedVideo['Video Title'],
+            'Video URL': selectedVideo['Video URL'],
+            'Asset Type': 'VIDEO',
+            'Performance Label': 'PENDING',
+            'Campaign ID': assetGroup.campaignId || 'unknown',
+            'Asset Group ID': assetGroup.assetGroupId,
+            'Account ID': assetGroup.accountId || 1,
+            'isPending': true,
+            'createdBy': 'current_user',
+            'createdAt': new Date(),
+            'approved': false
+          };
+          
+          // Update the local assetGroup.videos array immediately
+          if (assetGroup && Array.isArray(assetGroup.videos)) {
+            assetGroup.videos.push(newVideoData);
+          }
+          
           setShowVideoLibrary(false);
           setSelectedVideo(null);
-          window.location.reload();
+          
+          // Use the proper refresh mechanism instead of page reload
+          if (onRefresh) {
+            onRefresh();
+          }
         } else {
           console.error('Failed to add video');
         }
@@ -869,31 +914,73 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
   };
 
   const handleAddImageFromLibrary = async () => {
+    console.log('handleAddImageFromLibrary called');
+    console.log('selectedImage:', selectedImage);
+    console.log('assetGroup:', assetGroup);
+    
     if (selectedImage) {
       try {
+        const requestBody = {
+          imageUrl: selectedImage['Image URL'] || selectedImage['Asset URL'],
+          assetGroupId: assetGroup.assetGroupId,
+          campaignId: assetGroup.campaignId,
+          accountId: assetGroup.accountId || 1
+        };
+        
+        console.log('Sending request body:', requestBody);
+        
         const response = await fetch('/api/images', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            imageUrl: selectedImage['Image URL'],
-            assetGroupId: assetGroup.assetGroupId,
-            campaignId: assetGroup.campaignId,
-            accountId: assetGroup.accountId || 1
-          }),
+          body: JSON.stringify(requestBody),
         });
 
+        console.log('Response status:', response.status);
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+
         if (response.ok) {
+          
+          // Add the new image to the local state immediately
+          const newImageData = {
+            'Asset ID': responseData.data.assetId,
+            'Image URL': selectedImage['Image URL'] || selectedImage['Asset URL'],
+            'Asset Type': 'IMAGE',
+            'Performance Label': 'PENDING',
+            'Campaign ID': assetGroup.campaignId || 'unknown',
+            'Asset Group ID': assetGroup.assetGroupId,
+            'Account ID': assetGroup.accountId || 1,
+            'isPending': true,
+            'createdBy': 'current_user',
+            'createdAt': new Date(),
+            'approved': false
+          };
+          
+          // Update the local assetGroup.images array immediately
+          if (assetGroup && Array.isArray(assetGroup.images)) {
+            assetGroup.images.push(newImageData);
+            console.log('Added image to local state. New images array length:', assetGroup.images.length);
+            console.log('New image data:', newImageData);
+          }
+          
           setShowImageLibrary(false);
           setSelectedImage(null);
-          window.location.reload();
+          
+          // Use the proper refresh mechanism instead of page reload
+          if (onRefresh) {
+            console.log('Calling onRefresh...');
+            onRefresh();
+          }
         } else {
-          console.error('Failed to add image');
+          console.error('Failed to add image:', responseData);
         }
       } catch (error) {
         console.error('Error adding image:', error);
       }
+    } else {
+      console.log('No image selected');
     }
   };
 
@@ -1348,7 +1435,26 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           <h2 className="card-title">Images</h2>
             <button 
               className="btn btn-primary btn-sm"
-              onClick={() => setShowImageLibrary(true)}
+              onClick={async () => {
+                setShowImageLibrary(true);
+                // Fetch images when opening the library
+                try {
+                  const imagesResponse = await fetch('/api/images?all=true');
+                  if (imagesResponse.ok) {
+                    const imagesData = await imagesResponse.json();
+                    console.log('Images API response data:', imagesData);
+                    console.log('Number of images received:', imagesData.data?.length);
+                    if (imagesData.success) {
+                      setAvailableImages(imagesData.data);
+                      console.log('Available images set:', imagesData.data.length);
+                    }
+                  } else {
+                    console.error('Images API failed:', imagesResponse.status);
+                  }
+                } catch (error) {
+                  console.error('Error fetching images:', error);
+                }
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1358,10 +1464,13 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredImages.map((image, index) => {
+              console.log('Rendering image:', image);
+              console.log('Image URL:', image['Image URL']);
+              console.log('Asset URL:', image['Asset URL']);
               return (
                 <div key={index} className="card bg-base-200">
                 <figure className="relative aspect-square">
-                  {image['Image URL'] === 'View Image' ? (
+                  {(image['Image URL'] || image['Asset URL']) === 'View Image' ? (
                     <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-base-200">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1369,7 +1478,7 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
                     </div>
                   ) : (
                     <img 
-                      src={image['Image URL']} 
+                      src={image['Image URL'] || image['Asset URL']} 
                       alt={`Marketing Image ${index + 1}`}
                       className="w-full h-full object-cover"
                     />

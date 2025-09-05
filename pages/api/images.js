@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         'Asset Group ID': Number(assetGroupId),
         'Account ID': Number(accountId) || 1,
         'isPending': true,
-        'createdBy': session.user.email,
+        'createdBy': 'system@agency.com',
         'createdAt': new Date(),
         'approved': false
       };
@@ -94,9 +94,9 @@ export default async function handler(req, res) {
         action: 'add',
         status: 'PENDING',
         data: { imageUrl },
-        changedBy: session.user.email,
+        changedBy: 'system@agency.com',
         changedAt: new Date(),
-        userRole: session.user.role || 'client'
+        userRole: 'client'
       });
 
       return res.status(200).json({ 
