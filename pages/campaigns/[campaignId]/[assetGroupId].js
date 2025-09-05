@@ -40,8 +40,10 @@ export default function AssetGroupDetailPage() {
   const fetchAssets = async () => {
     try {
       setLoading(true);
+      console.log('Fetching assets for campaign:', campaignId, 'asset group:', assetGroupId);
       const response = await fetch(`/api/assets?campaign_id=${campaignId}&asset_group_id=${assetGroupId}`);
       const assetsData = await response.json();
+      console.log('Fetched assets:', assetsData.length, 'assets');
       
       if (assetsData.length === 0) {
         setCampaign({ campaignName: 'Unknown Campaign' });
@@ -116,13 +118,24 @@ export default function AssetGroupDetailPage() {
   // Delete asset using unified API
   const deleteAsset = async (assetId) => {
     try {
+      console.log('Sending DELETE request for asset:', assetId);
       const response = await fetch(`/api/assets?id=${assetId}`, {
         method: 'DELETE'
       });
 
+      console.log('Delete response status:', response.status);
+      const responseData = await response.json();
+      console.log('Delete response data:', responseData);
+
       if (response.ok) {
-        fetchAssets(); // Refresh assets
+        console.log('Delete successful, refreshing assets...');
+        // Small delay to ensure database update completes
+        setTimeout(() => {
+          fetchAssets(); // Refresh assets
+        }, 100);
         return true;
+      } else {
+        console.error('Delete failed:', responseData);
       }
     } catch (error) {
       console.error('Error deleting asset:', error);
@@ -227,8 +240,13 @@ export default function AssetGroupDetailPage() {
 
   // Handle removing asset
   const handleRemoveAsset = async (assetId) => {
-    if (confirm('Are you sure you want to remove this asset?')) {
-      await deleteAsset(assetId);
+    console.log('Removing asset:', assetId);
+    const success = await deleteAsset(assetId);
+    console.log('Delete result:', success);
+    if (success) {
+      console.log('Asset removed successfully, refreshing...');
+    } else {
+      console.log('Failed to remove asset');
     }
   };
 
@@ -396,7 +414,11 @@ export default function AssetGroupDetailPage() {
                         </div>
                       </div>
                       <button
-                        onClick={() => handleRemoveAsset(asset.asset_id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleRemoveAsset(asset.asset_id);
+                        }}
                         className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded-lg"
                       >
                         <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
@@ -503,7 +525,11 @@ export default function AssetGroupDetailPage() {
                         </div>
                       </div>
                       <button
-                        onClick={() => handleRemoveAsset(asset.asset_id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleRemoveAsset(asset.asset_id);
+                        }}
                         className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded-lg"
                       >
                         <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
@@ -604,7 +630,11 @@ export default function AssetGroupDetailPage() {
                   {/* Delete button overlay */}
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
                     <button
-                      onClick={() => handleRemoveAsset(image.asset_id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleRemoveAsset(image.asset_id);
+                      }}
                       className="opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

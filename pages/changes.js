@@ -32,51 +32,47 @@ export default function ChangesPage() {
   const fetchCampaignsAndAssetGroups = async () => {
     try {
       console.log('Fetching campaigns and asset groups from changes...');
-      // Get campaigns and asset groups from the changes API instead
-      const response = await fetch('/api/changes?accountId=1&filter=all&dateRange=all');
+      const response = await fetch('/api/changes');
       console.log('Changes API response status:', response.status);
       if (response.ok) {
         const data = await response.json();
         console.log('Changes API response data:', data);
-        if (data.success) {
-          // Extract unique campaigns and asset groups from the changes data
-          const campaignSet = new Set();
-          const assetGroupSet = new Set();
+        
+        // Extract unique campaigns and asset groups from the changes data
+        const campaignSet = new Set();
+        const assetGroupSet = new Set();
+        
+        data.forEach(change => {
+          // Add campaign info - use Set to ensure uniqueness
+          if (change.campaign_id && change.campaign_name) {
+            campaignSet.add(JSON.stringify({
+              id: change.campaign_id,
+              name: change.campaign_name
+            }));
+          }
           
-          data.data.forEach(change => {
-            // Add campaign info - use Set to ensure uniqueness
-            if (change.campaignId && change.assetDetails?.campaignName) {
-              campaignSet.add(JSON.stringify({
-                id: change.campaignId,
-                name: change.assetDetails.campaignName
-              }));
-            }
-            
-            // Add asset group info - use Set to ensure uniqueness
-            if (change.assetGroupId && change.assetDetails?.assetGroupName) {
-              assetGroupSet.add(JSON.stringify({
-                id: change.assetGroupId,
-                name: change.assetDetails.assetGroupName,
-                'Campaign ID': change.campaignId,
-                'Campaign Name': change.assetDetails.campaignName
-              }));
-            }
-          });
-          
-          // Convert back to objects
-          const campaignsArray = Array.from(campaignSet).map(item => JSON.parse(item));
-          const assetGroupsArray = Array.from(assetGroupSet).map(item => JSON.parse(item));
-          
-          console.log('Processed campaigns from changes:', campaignsArray.length);
-          console.log('Processed asset groups from changes:', assetGroupsArray.length);
-          console.log('Sample campaign:', campaignsArray[0]);
-          console.log('Sample asset group:', assetGroupsArray[0]);
-          
-          setCampaigns(campaignsArray);
-          setAssetGroups(assetGroupsArray);
-        } else {
-          console.error('Changes API returned success: false');
-        }
+          // Add asset group info - use Set to ensure uniqueness
+          if (change.asset_group_id && change.asset_group_name) {
+            assetGroupSet.add(JSON.stringify({
+              id: change.asset_group_id,
+              name: change.asset_group_name,
+              'Campaign ID': change.campaign_id,
+              'Campaign Name': change.campaign_name
+            }));
+          }
+        });
+        
+        // Convert back to objects
+        const campaignsArray = Array.from(campaignSet).map(item => JSON.parse(item));
+        const assetGroupsArray = Array.from(assetGroupSet).map(item => JSON.parse(item));
+        
+        console.log('Processed campaigns from changes:', campaignsArray.length);
+        console.log('Processed asset groups from changes:', assetGroupsArray.length);
+        console.log('Sample campaign:', campaignsArray[0]);
+        console.log('Sample asset group:', assetGroupsArray[0]);
+        
+        setCampaigns(campaignsArray);
+        setAssetGroups(assetGroupsArray);
       } else {
         console.error('Changes API failed:', response.status);
       }
@@ -90,12 +86,19 @@ export default function ChangesPage() {
       setLoading(true);
       console.log('Fetching changes with params:', { filter, dateRange, selectedCampaign, selectedAssetGroup });
       
-      let url = `/api/changes?accountId=1&filter=${filter}&dateRange=${dateRange}`;
-      if (selectedCampaign !== 'all') {
-        url += `&campaignId=${selectedCampaign}`;
-      }
+      let url = `/api/changes`;
+      const params = new URLSearchParams();
+      
       if (selectedAssetGroup !== 'all') {
-        url += `&assetGroupId=${selectedAssetGroup}`;
+        params.append('asset_group_id', selectedAssetGroup);
+      }
+      
+      if (filter === 'needs-update') {
+        params.append('needs_update', 'true');
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
       
       const response = await fetch(url);
@@ -103,9 +106,7 @@ export default function ChangesPage() {
       if (response.ok) {
         const data = await response.json();
         console.log('Changes API response data:', data);
-        if (data.success) {
-          setChanges(data.data);
-        }
+        setChanges(data);
       } else {
         const errorData = await response.json();
         console.error('Changes API error:', errorData);
@@ -164,7 +165,7 @@ export default function ChangesPage() {
   };
 
   const filteredChanges = changes.filter(change => {
-    if (filter === 'needs-update') return change.needsGoogleAdsUpdate;
+    if (filter === 'needs-update') return change.needs_google_ads_update;
     if (filter === 'all') return true;
     return change.action === filter;
   });
@@ -240,7 +241,7 @@ export default function ChangesPage() {
                     
                     // Debug: Show filtered asset groups
                     const filteredGroups = assetGroups.filter(ag => 
-                      newCampaign === 'all' || ag['Campaign ID'] === Number(newCampaign)
+                      newCampaign === 'all' || ag['Campaign ID'] === newCampaign
                     );
                     console.log('🔍 DEBUG - Filtered Asset Groups:', filteredGroups.length, filteredGroups);
                   }}
@@ -266,7 +267,7 @@ export default function ChangesPage() {
                 >
                   <option value="all">All Asset Groups</option>
                   {assetGroups
-                    .filter(ag => selectedCampaign === 'all' || ag['Campaign ID'] === Number(selectedCampaign))
+                    .filter(ag => selectedCampaign === 'all' || ag['Campaign ID'] === selectedCampaign)
                     .map(assetGroup => (
                       <option key={assetGroup.id} value={assetGroup.id}>
                         {assetGroup.name} ({assetGroup['Campaign Name'] || 'Unknown Campaign'})
@@ -287,7 +288,7 @@ export default function ChangesPage() {
                 <div className="stat">
                   <div className="stat-title">Need Update</div>
                   <div className="stat-value text-warning">
-                    {changes.filter(c => c.needsGoogleAdsUpdate).length}
+                    {changes.filter(c => c.needs_google_ads_update).length}
                   </div>
                 </div>
               </div>
@@ -321,7 +322,7 @@ export default function ChangesPage() {
                     {filteredChanges.map((change, index) => (
                       <tr key={index} className="hover">
                         <td className="text-xs text-left whitespace-nowrap">
-                          {formatDate(change.changedAt)}
+                          {formatDate(change.changed_at)}
                         </td>
                         <td className="text-center">
                           <div className={`badge badge-sm ${getActionBadge(change.action)}`}>
@@ -330,131 +331,41 @@ export default function ChangesPage() {
                         </td>
                         <td className="text-left">
                           <div className="flex items-center gap-2">
-                            {/* Show actual image preview for IMAGE assets */}
-                            {(change.assetType === 'image' || change.assetDetails.assetType === 'IMAGE') && (change.data?.imageUrl || change.assetDetails.assetUrl) ? (
-                              <div className="relative group">
-                                <img 
-                                  src={change.data?.imageUrl || change.assetDetails.assetUrl} 
-                                  alt="Asset preview" 
-                                  className="w-12 h-12 object-cover rounded border"
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'block';
-                                  }}
-                                />
-                                <div className="w-12 h-12 bg-base-200 rounded border flex items-center justify-center text-lg" style={{display: 'none'}}>
-                                  🖼️
-                                </div>
-                                {/* Hover preview */}
-                                <div className="absolute left-0 top-0 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                                  <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-2 max-w-xs">
-                                    <img 
-                                      src={change.data?.imageUrl || change.assetDetails.assetUrl} 
-                                      alt="Asset preview" 
-                                      className="max-w-full max-h-48 object-contain rounded"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-lg">
-                                {getAssetTypeIcon(change.assetDetails.assetType, change.assetDetails.fieldType)}
-                              </span>
-                            )}
+                            <span className="text-lg">
+                              {getAssetTypeIcon(change.asset_type, change.field_type)}
+                            </span>
                             <div>
                               <div className="font-medium">
-                                {change.assetType === 'image' ? 'IMAGE' : 
-                                 change.assetType === 'video' ? 'VIDEO' : 
-                                 change.assetType === 'headline' ? 'TEXT' : 
-                                 change.assetType === 'description' ? 'TEXT' :
-                                 change.assetDetails.assetType === 'YOUTUBE_VIDEO' ? 'VIDEO' :
-                                 change.assetDetails.assetType || 'UNKNOWN'}
+                                {change.asset_type}
                               </div>
-                              {change.assetDetails.fieldType && (
+                              {change.field_type && (
                                 <div className="text-xs text-base-content/60">
-                                  {change.assetDetails.fieldType}
+                                  {change.field_type}
                                 </div>
                               )}
                             </div>
                           </div>
                         </td>
                         <td className="text-left max-w-[200px]">
-                          {/* Show appropriate content based on asset type */}
-                          {change.assetType === 'image' || change.assetDetails.assetType === 'IMAGE' ? (
-                            <div>
-                              <div className="text-xs text-blue-600 truncate" title={change.data?.imageUrl || change.assetDetails.assetUrl || 'No URL'}>
-                                {change.data?.imageUrl || change.assetDetails.assetUrl ? '🖼️ Image URL' : 'N/A'}
-                              </div>
-                              {(change.data?.imageUrl || change.assetDetails.assetUrl) && (
-                                <div className="text-xs text-base-content/60 truncate" title={change.data?.imageUrl || change.assetDetails.assetUrl}>
-                                  {change.data?.imageUrl || change.assetDetails.assetUrl}
-                                </div>
-                              )}
-                            </div>
-                          ) : change.assetType === 'video' || change.assetDetails.assetType === 'VIDEO' || change.assetDetails.assetType === 'YOUTUBE_VIDEO' ? (
-                            <div>
-                              <div className="text-xs text-blue-600 truncate" title={change.data?.videoUrl || change.assetDetails.assetUrl || 'No URL'}>
-                                {change.data?.videoUrl || change.assetDetails.assetUrl ? '🎥 Video URL' : 'N/A'}
-                              </div>
-                              {(change.data?.videoUrl || change.assetDetails.assetUrl) && (
-                                <div className="text-xs text-base-content/60 truncate" title={change.data?.videoUrl || change.assetDetails.assetUrl}>
-                                  {change.data?.videoUrl || change.assetDetails.assetUrl}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div>
-                              <div className="truncate" title={change.assetDetails.textContent || 'N/A'}>
-                                {change.assetDetails.textContent || 'N/A'}
-                              </div>
-                            </div>
-                          )}
-                          <div className="text-xs text-base-content/60 truncate" title={`ID: ${change.assetId}`}>
-                            ID: {change.assetId}
+                          <div className="truncate" title={`Asset ID: ${change.asset_id}`}>
+                            ID: {change.asset_id}
                           </div>
-                          {/* Image preview for image assets */}
-                          {change.assetDetails.assetType === 'IMAGE' && change.assetDetails.assetUrl && (
-                            <div className="relative group mt-2">
-                              <div className="text-xs text-blue-600 cursor-pointer hover:text-blue-800">
-                                🖼️ View Image
-                              </div>
-                              <div className="absolute left-0 top-6 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                                <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-2 max-w-xs">
-                                  <img 
-                                    src={change.assetDetails.assetUrl} 
-                                    alt="Asset preview" 
-                                    className="max-w-full max-h-48 object-contain rounded"
-                                    onError={(e) => {
-                                      e.target.style.display = 'none';
-                                      e.target.nextSibling.style.display = 'block';
-                                    }}
-                                  />
-                                  <div className="text-xs text-gray-500 mt-1 hidden">
-                                    Image not available
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </td>
                         <td className="text-left max-w-[180px]">
-                          <div className="truncate" title={change.assetDetails.campaignName || 'N/A'}>
-                            {change.assetDetails.campaignName || 'N/A'}
+                          <div className="truncate" title={change.campaign_name || 'N/A'}>
+                            {change.campaign_name || 'N/A'}
                           </div>
                         </td>
                         <td className="text-left max-w-[160px]">
-                          <div className="truncate" title={change.assetDetails.assetGroupName || 'N/A'}>
-                            {change.assetDetails.assetGroupName || 'N/A'}
+                          <div className="truncate" title={change.asset_group_name || 'N/A'}>
+                            {change.asset_group_name || 'N/A'}
                           </div>
                         </td>
                         <td className="text-left">
-                          <div className="text-sm">{change.changedBy}</div>
-                          <div className="text-xs text-base-content/60">
-                            {change.userRole}
-                          </div>
+                          <div className="text-sm">{change.changed_by}</div>
                         </td>
                         <td className="text-center">
-                          {change.needsGoogleAdsUpdate ? (
+                          {change.needs_google_ads_update ? (
                             <div className="badge badge-warning badge-sm">
                               ⚠️ Needs Update
                             </div>
@@ -474,7 +385,7 @@ export default function ChangesPage() {
         </div>
 
         {/* Summary for Google Ads Updates */}
-        {changes.filter(c => c.needsGoogleAdsUpdate).length > 0 && (
+        {changes.filter(c => c.needs_google_ads_update).length > 0 && (
           <div className="card bg-warning/10 border-warning mt-6">
             <div className="card-body">
               <h3 className="card-title text-warning">
@@ -485,16 +396,16 @@ export default function ChangesPage() {
               </p>
               <ul className="list-disc list-inside mt-2 text-sm">
                 {changes
-                  .filter(c => c.needsGoogleAdsUpdate)
+                  .filter(c => c.needs_google_ads_update)
                   .slice(0, 5)
                   .map((change, index) => (
                     <li key={index}>
-                      <strong>{change.action.toUpperCase()}</strong> {change.assetDetails.assetType} 
-                      in {change.assetDetails.campaignName} - {change.assetDetails.assetGroupName}
+                      <strong>{change.action.toUpperCase()}</strong> {change.asset_type} 
+                      in {change.campaign_name} - {change.asset_group_name}
                     </li>
                   ))}
-                {changes.filter(c => c.needsGoogleAdsUpdate).length > 5 && (
-                  <li>... and {changes.filter(c => c.needsGoogleAdsUpdate).length - 5} more</li>
+                {changes.filter(c => c.needs_google_ads_update).length > 5 && (
+                  <li>... and {changes.filter(c => c.needs_google_ads_update).length - 5} more</li>
                 )}
               </ul>
             </div>
