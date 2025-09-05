@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { imageUrl, assetGroupId, campaignId, accountId } = req.body;
+      const { imageUrl, assetGroupId, campaignId, campaignName, assetGroupName, accountId } = req.body;
       
       if (!imageUrl || !assetGroupId) {
         return res.status(400).json({ success: false, message: 'Missing required fields' });
@@ -67,7 +67,9 @@ export default async function handler(req, res) {
         'Asset Type': 'IMAGE',
         'Performance Label': 'PENDING',
         'Campaign ID': campaignId || 'unknown',
+        'Campaign Name': campaignName || 'Unknown Campaign',
         'AssetGroup ID': Number(assetGroupId),
+        'Asset Group Name': assetGroupName || 'Unknown Asset Group',
         'Account ID': Number(accountId) || 1,
         'isPending': true,
         'createdBy': 'system@agency.com',
@@ -88,6 +90,8 @@ export default async function handler(req, res) {
       await db.collection('asset_changes').insertOne({
         assetGroupId: Number(assetGroupId),
         campaignId: campaignId || 'unknown',
+        campaignName: campaignName || 'Unknown Campaign',
+        assetGroupName: assetGroupName || 'Unknown Asset Group',
         accountId: Number(accountId) || 1,
         assetId: assetId,
         assetType: 'image',

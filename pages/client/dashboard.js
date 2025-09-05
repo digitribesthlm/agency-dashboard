@@ -869,6 +869,8 @@ const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
             videoTitle: selectedVideo['Video Title'],
             assetGroupId: assetGroup.assetGroupId,
             campaignId: assetGroup.campaignId,
+            campaignName: assetGroup.campaignName,
+            assetGroupName: assetGroup.assetGroupName,
             accountId: assetGroup.accountId || 1
           }),
         });
@@ -924,6 +926,8 @@ const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
           imageUrl: selectedImage['Image URL'] || selectedImage['Asset URL'],
           assetGroupId: assetGroup.assetGroupId,
           campaignId: assetGroup.campaignId,
+          campaignName: assetGroup.campaignName,
+          assetGroupName: assetGroup.assetGroupName,
           accountId: assetGroup.accountId || 1
         };
         

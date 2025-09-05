@@ -98,6 +98,8 @@ export default async function handler(req, res) {
           assetGroupName: asset['Asset Group Name'],
           assetGroupId: assetGroupId,
           campaignId: campaignId,
+          campaignName: asset['Campaign Name'], // Add campaign name to asset group
+          accountId: asset['Account ID'], // Add account ID to asset group
           assetGroupStatus: asset['Asset Group Status'],
           headlines: [],
           shortHeadlines: [],

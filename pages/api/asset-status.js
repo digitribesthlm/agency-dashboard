@@ -36,6 +36,22 @@ export default async function handler(req, res) {
         }
       }
 
+      // Get campaign and asset group names from existing asset
+      let campaignName = 'Unknown Campaign';
+      let assetGroupName = 'Unknown Asset Group';
+      
+      if (finalCampaignId) {
+        const existingAsset = await db.collection('PMax_Assets')
+          .findOne({ 
+            'Campaign ID': finalCampaignId,
+            'AssetGroup ID': Number(assetGroupId)
+          });
+        if (existingAsset) {
+          campaignName = existingAsset['Campaign Name'] || 'Unknown Campaign';
+          assetGroupName = existingAsset['Asset Group Name'] || 'Unknown Asset Group';
+        }
+      }
+
       // Create status change record
       const statusChange = {
         assetId,
@@ -43,6 +59,8 @@ export default async function handler(req, res) {
         action, // 'pause', 'resume', 'remove'
         assetGroupId: Number(assetGroupId),
         campaignId: finalCampaignId || 'unknown',
+        campaignName: campaignName,
+        assetGroupName: assetGroupName,
         accountId: accountId || 1,
         changedBy: session.user.email,
         changedAt: new Date(),
@@ -86,6 +104,8 @@ export default async function handler(req, res) {
         assetId,
         assetGroupId: Number(assetGroupId),
         campaignId: finalCampaignId || 'unknown',
+        campaignName: campaignName,
+        assetGroupName: assetGroupName,
         accountId: accountId || 1,
         data: { action, assetType, newStatus: updateField['Asset Status'] },
         changedBy: session.user.email,
