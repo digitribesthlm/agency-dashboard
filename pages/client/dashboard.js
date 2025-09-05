@@ -793,6 +793,7 @@ const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
 
 
   const handleRemoveImage = async (imageId) => {
+    console.log('handleRemoveImage called with imageId:', imageId);
     try {
       const response = await fetch('/api/asset-status', {
         method: 'POST',
@@ -802,7 +803,7 @@ const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
         body: JSON.stringify({
           action: 'remove',
           assetType: 'image',
-          assetId: imageId,
+          assetId: String(imageId), // Keep as string to match database format
           assetGroupId: assetGroup.assetGroupId,
           campaignId: assetGroup.campaignId,
           accountId: assetGroup.accountId || 1
@@ -810,14 +811,23 @@ const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
       });
 
       if (response.ok) {
+        const responseData = await response.json();
+        console.log('Remove image response:', responseData);
+        
         // Immediately update local view
         if (assetGroup && Array.isArray(assetGroup.images)) {
           assetGroup.images = assetGroup.images.filter(img => String(img['Asset ID']) !== String(imageId));
         }
-        onRefresh && onRefresh();
+        
+        // Wait a moment for database update to complete, then refresh
+        setTimeout(() => {
+          onRefresh && onRefresh();
+        }, 500);
+        
         console.log('Image removed successfully');
       } else {
-        console.error('Failed to remove image');
+        const errorData = await response.json();
+        console.error('Failed to remove image:', errorData);
       }
     } catch (error) {
       console.error('Error removing image:', error);
@@ -834,7 +844,7 @@ const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
         body: JSON.stringify({
           action: 'remove',
           assetType: 'video',
-          assetId: videoId,
+          assetId: String(videoId), // Keep as string to match database format
           assetGroupId: assetGroup.assetGroupId,
           campaignId: assetGroup.campaignId,
           accountId: assetGroup.accountId || 1
@@ -842,14 +852,23 @@ const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
       });
 
       if (response.ok) {
+        const responseData = await response.json();
+        console.log('Remove video response:', responseData);
+        
         // Immediately update local view
         if (assetGroup && Array.isArray(assetGroup.videos)) {
           assetGroup.videos = assetGroup.videos.filter(v => String(v['Asset ID']) !== String(videoId));
         }
-        onRefresh && onRefresh();
+        
+        // Wait a moment for database update to complete, then refresh
+        setTimeout(() => {
+          onRefresh && onRefresh();
+        }, 500);
+        
         console.log('Video removed successfully');
       } else {
-        console.error('Failed to remove video');
+        const errorData = await response.json();
+        console.error('Failed to remove video:', errorData);
       }
     } catch (error) {
       console.error('Error removing video:', error);
@@ -1505,7 +1524,10 @@ const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
                       <button 
                         type="button"
                         className="btn btn-error btn-xs"
-                        onClick={() => handleRemoveImage(image['Asset ID'])}
+                        onClick={() => {
+                          console.log('Delete button clicked for image:', image['Asset ID']);
+                          handleRemoveImage(image['Asset ID']);
+                        }}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
       // Update the actual asset status in PMax_Assets collection
       const updateQuery = {
-        'Asset ID': Number(assetId),
+        'Asset ID': String(assetId), // Keep as string to match database format
         'AssetGroup ID': Number(assetGroupId)
       };
       if (finalCampaignId) {
