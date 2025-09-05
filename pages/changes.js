@@ -20,6 +20,11 @@ export default function ChangesPage() {
       router.push('/login');
       return;
     }
+    // Only allow admin users to access changes page
+    if (session.user.role !== 'admin') {
+      router.push('/client/dashboard');
+      return;
+    }
     fetchCampaignsAndAssetGroups();
     fetchChanges();
   }, [session, status, filter, dateRange, selectedCampaign, selectedAssetGroup]);

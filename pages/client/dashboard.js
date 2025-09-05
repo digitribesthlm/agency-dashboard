@@ -135,16 +135,18 @@ export default function ClientDashboard() {
                 Campaigns
               </button>
             </li>
-            <li>
-              <a 
-                href="/changes" 
-                className="link link-primary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                📊 Changes Tracking
-              </a>
-            </li>
+            {session?.user?.role === 'admin' && (
+              <li>
+                <a 
+                  href="/changes" 
+                  className="link link-primary"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  📊 Changes Tracking
+                </a>
+              </li>
+            )}
             {selectedCampaign && (
               <li>
                 <button 
@@ -176,6 +178,7 @@ export default function ClientDashboard() {
           <AssetGroupDetail 
             assetGroup={selectedAssetGroup}
             onRefresh={refreshCampaignsAndSyncSelection}
+            session={session}
           />
         )}
       </div>
@@ -389,7 +392,7 @@ const AssetGroupsList = ({ assetGroups, onSelect }) => {
   );
 };
 
-const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
+const AssetGroupDetail = ({ assetGroup, onRefresh, session }) => {
   const [newHeadline, setNewHeadline] = useState('');
   const [newLongHeadline, setNewLongHeadline] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -432,13 +435,15 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
       try {
         console.log('Fetching data for asset group:', assetGroup.assetGroupId);
         
-        // Fetch changes history
-        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
-        if (changesResponse.ok) {
-          const changesData = await changesResponse.json();
-          console.log('Fetched changes data:', changesData);
-          if (changesData.success) {
-            setChangesHistory(changesData.data);
+        // Only fetch changes history for admin users
+        if (session?.user?.role === 'admin') {
+          const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+          if (changesResponse.ok) {
+            const changesData = await changesResponse.json();
+            console.log('Fetched changes data:', changesData);
+            if (changesData.success) {
+              setChangesHistory(changesData.data);
+            }
           }
         }
         
@@ -509,7 +514,7 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
     };
 
     fetchData();
-  }, [assetGroup?.assetGroupId]);
+  }, [assetGroup?.assetGroupId, session?.user?.role]);
 
 
 
@@ -566,12 +571,14 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           }
         }
         
-        // Refresh changes history
-        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
-        if (changesResponse.ok) {
-          const changesData = await changesResponse.json();
-          if (changesData.success) {
-            setChangesHistory(changesData.data);
+        // Refresh changes history (admin only)
+        if (session?.user?.role === 'admin') {
+          const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+          if (changesResponse.ok) {
+            const changesData = await changesResponse.json();
+            if (changesData.success) {
+              setChangesHistory(changesData.data);
+            }
           }
         }
       } else {
@@ -634,12 +641,14 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           }
         }
         
-        // Refresh changes history
-        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
-        if (changesResponse.ok) {
-          const changesData = await changesResponse.json();
-          if (changesData.success) {
-            setChangesHistory(changesData.data);
+        // Refresh changes history (admin only)
+        if (session?.user?.role === 'admin') {
+          const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+          if (changesResponse.ok) {
+            const changesData = await changesResponse.json();
+            if (changesData.success) {
+              setChangesHistory(changesData.data);
+            }
           }
         }
       } else {
@@ -688,12 +697,14 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
         setNewLandingPage('');
         setShowAddLandingPageForm(false);
         
-        // Refresh changes history
-        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
-        if (changesResponse.ok) {
-          const changesData = await changesResponse.json();
-          if (changesData.success) {
-            setChangesHistory(changesData.data);
+        // Refresh changes history (admin only)
+        if (session?.user?.role === 'admin') {
+          const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+          if (changesResponse.ok) {
+            const changesData = await changesResponse.json();
+            if (changesData.success) {
+              setChangesHistory(changesData.data);
+            }
           }
         }
       } else {
@@ -1020,12 +1031,14 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           }
         }
         
-        // Refresh changes history
-        const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
-        if (changesResponse.ok) {
-          const changesData = await changesResponse.json();
-          if (changesData.success) {
-            setChangesHistory(changesData.data);
+        // Refresh changes history (admin only)
+        if (session?.user?.role === 'admin') {
+          const changesResponse = await fetch(`/api/changes?assetGroupId=${assetGroup.assetGroupId}`);
+          if (changesResponse.ok) {
+            const changesData = await changesResponse.json();
+            if (changesData.success) {
+              setChangesHistory(changesData.data);
+            }
           }
         }
       } else {
@@ -1617,12 +1630,12 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
                   <figure className="aspect-square">
                     {(() => {
                       const imageUrl = image['Image URL'] || image['Asset URL'];
-                      console.log('Image data:', image);
-                      console.log('Image URL:', image['Image URL']);
-                      console.log('Asset URL:', image['Asset URL']);
-                      console.log('Using URL:', imageUrl);
-                      console.log('Should show placeholder:', !imageUrl || imageUrl === 'View Image' || !imageUrl.startsWith('http'));
-                      return !imageUrl || imageUrl === 'View Image' || !imageUrl.startsWith('http');
+                      // Show placeholder only if no URL or if it's clearly not a valid image URL
+                      return !imageUrl || 
+                        imageUrl === 'View Image' || 
+                        imageUrl === 'null' || 
+                        imageUrl === 'undefined' ||
+                        (!imageUrl.startsWith('http') && !imageUrl.startsWith('data:'));
                     })() ? (
                       <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-base-200">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1787,25 +1800,26 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
         </div>
       </div>
 
-      {/* Changes History Section */}
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="card-title">Changes History</h2>
-            <button 
-              className="btn btn-outline btn-sm"
-              onClick={() => setShowChangesHistory(!showChangesHistory)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {showChangesHistory ? 'Hide' : 'Show'} History
-            </button>
-          </div>
+      {/* Changes History Section - Only visible to admin users */}
+      {session?.user?.role === 'admin' && (
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="card-title">Changes History</h2>
+              <button 
+                className="btn btn-outline btn-sm"
+                onClick={() => setShowChangesHistory(!showChangesHistory)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {showChangesHistory ? 'Hide' : 'Show'} History
+              </button>
+            </div>
 
-          {showChangesHistory && (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {changesHistory.length > 0 ? (
+            {showChangesHistory && (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {changesHistory.length > 0 ? (
                 changesHistory.map((change, index) => (
                   <div key={index} className="p-3 bg-base-200 rounded-lg">
                     <div className="flex justify-between items-start">
@@ -1845,6 +1859,7 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };
