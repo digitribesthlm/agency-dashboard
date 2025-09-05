@@ -1493,19 +1493,30 @@ const AssetGroupDetail = ({ assetGroup, onRefresh }) => {
                   onClick={() => setSelectedImage(image)}
                 >
                   <figure className="aspect-square">
-                    {image['Image URL'] === 'View Image' ? (
+                    {!image['Image URL'] || image['Image URL'] === 'View Image' || !image['Image URL'].startsWith('http') ? (
                       <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-base-200">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
+                        <span className="text-xs text-base-content/60 mt-2">Library Image</span>
                       </div>
                     ) : (
                       <img 
                         src={image['Image URL']} 
                         alt="Library Image"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
                       />
                     )}
+                    <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-base-200" style={{display: 'none'}}>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-xs text-base-content/60 mt-2">Library Image</span>
+                    </div>
                   </figure>
                   <div className="card-body p-3">
                     <p className="text-xs text-base-content/60">Asset ID: {image['Asset ID']}</p>
