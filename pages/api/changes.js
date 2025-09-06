@@ -32,15 +32,32 @@ export default async function handler(req, res) {
 
     console.log('Changes query:', query);
 
-    // Fetch changes from asset_changes collection only
+    // Fetch changes from asset_changes collection
     const changes = await db.collection('asset_changes')
       .find(query)
       .sort({ changed_at: -1 })
       .limit(parseInt(limit))
       .toArray();
 
+    // For each change, fetch the actual asset data to get content/URLs
+    const changesWithAssetData = await Promise.all(
+      changes.map(async (change) => {
+        // Fetch the actual asset data
+        const asset = await db.collection('assets').findOne({
+          asset_id: change.asset_id,
+          campaign_id: change.campaign_id,
+          asset_group_id: change.asset_group_id
+        });
+
+        return {
+          ...change,
+          asset_data: asset // Include the full asset data
+        };
+      })
+    );
+
     // Transform data for frontend compatibility
-    const transformedChanges = changes.map(change => ({
+    const transformedChanges = changesWithAssetData.map(change => ({
       id: change._id,
       asset_id: change.asset_id,
       action: change.action,
@@ -52,6 +69,13 @@ export default async function handler(req, res) {
       changed_by: change.changed_by,
       changed_at: change.changed_at,
       needs_google_ads_update: change.needs_google_ads_update,
+      
+      // Include asset content for display
+      asset_url: change.asset_data?.asset_url,
+      text_content: change.asset_data?.text_content,
+      field_type: change.asset_data?.field_type,
+      landing_page_url: change.asset_data?.landing_page_url,
+      performance_label: change.asset_data?.performance_label,
       
       // Frontend compatibility fields
       'Asset ID': change.asset_id,

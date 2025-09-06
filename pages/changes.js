@@ -311,7 +311,7 @@ export default function ChangesPage() {
                       <th className="w-32 text-left">Time</th>
                       <th className="w-20 text-center">Action</th>
                       <th className="w-28 text-left">Asset Type</th>
-                      <th className="text-left min-w-[200px]">Content</th>
+                      <th className="text-left min-w-[300px]">Content Preview</th>
                       <th className="w-48 text-left min-w-[180px]">Campaign</th>
                       <th className="w-48 text-left min-w-[160px]">Asset Group</th>
                       <th className="w-32 text-left">Changed By</th>
@@ -346,9 +346,72 @@ export default function ChangesPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="text-left max-w-[200px]">
-                          <div className="truncate" title={`Asset ID: ${change.asset_id}`}>
-                            ID: {change.asset_id}
+                        <td className="text-left max-w-[300px]">
+                          <div className="flex items-center gap-3">
+                            {/* Display actual content based on asset type */}
+                            {change.asset_type === 'IMAGE' && change.asset_url ? (
+                              <div className="flex-shrink-0">
+                                <img 
+                                  src={change.asset_url} 
+                                  alt="Asset" 
+                                  className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                                  onError={(e) => {
+                                    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iMzIiIHk9IjMyIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZTwvdGV4dD48L3N2Zz4=';
+                                  }}
+                                />
+                              </div>
+                            ) : change.asset_type === 'VIDEO' && change.asset_url ? (
+                              <div className="flex-shrink-0 relative">
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+                                  <iframe
+                                    src={`https://www.youtube.com/embed/${change.asset_url?.split('v=')[1]?.split('&')[0]}?autoplay=0&controls=0&showinfo=0&rel=0&modestbranding=1`}
+                                    className="w-full h-full pointer-events-none"
+                                    style={{ transform: 'scale(0.5)', transformOrigin: 'top left' }}
+                                  />
+                                </div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
+                                    <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M8 5v10l8-5-8-5z"/>
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : change.asset_type === 'YOUTUBE_VIDEO' && change.asset_url ? (
+                              <div className="flex-shrink-0 relative">
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+                                  <iframe
+                                    src={`https://www.youtube.com/embed/${change.asset_url?.split('v=')[1]?.split('&')[0]}?autoplay=0&controls=0&showinfo=0&rel=0&modestbranding=1`}
+                                    className="w-full h-full pointer-events-none"
+                                    style={{ transform: 'scale(0.5)', transformOrigin: 'top left' }}
+                                  />
+                                </div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
+                                    <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M8 5v10l8-5-8-5z"/>
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : null}
+                            
+                            {/* Content text */}
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {change.text_content || `ID: ${change.asset_id}`}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                ID: {change.asset_id}
+                              </div>
+                              {change.landing_page_url && (
+                                <div className="text-xs text-blue-600 truncate">
+                                  <a href={change.landing_page_url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                    {change.landing_page_url}
+                                  </a>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="text-left max-w-[180px]">
