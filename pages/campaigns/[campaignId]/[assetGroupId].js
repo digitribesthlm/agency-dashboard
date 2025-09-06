@@ -616,7 +616,11 @@ export default function AssetGroupDetailPage() {
               <div className="p-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {assets.images?.map((image) => (
-                    <div key={image.asset_id} className="group bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 overflow-hidden">
+                    <div key={image.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
+                      image.is_pending 
+                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
+                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                    }`}>
                 <div className="relative">
                   <img
                     src={image['Image URL'] || image['Asset URL']}
@@ -678,8 +682,15 @@ export default function AssetGroupDetailPage() {
                 </div>
                 
                 <div className="p-3">
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                     <span>ID: {image.asset_id}</span>
+                    {image.is_pending && (
+                      <div className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                        PENDING
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       image['Performance Label'] === 'BEST' ? 'bg-green-100 text-green-800' :
                       image['Performance Label'] === 'GOOD' ? 'bg-blue-100 text-blue-800' :
@@ -724,7 +735,11 @@ export default function AssetGroupDetailPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {assets.videos?.map((video) => (
-                    <div key={video.asset_id} className="group bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 overflow-hidden">
+                    <div key={video.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
+                      video.is_pending 
+                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
+                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                    }`}>
                 <div className="relative">
                   <div className="aspect-video bg-gray-200 rounded-t-xl overflow-hidden">
                     <iframe
@@ -779,8 +794,15 @@ export default function AssetGroupDetailPage() {
                     {video['Video Title'] || video['Text Content'] || 'Untitled Video'}
                   </h4>
                   
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                     <span>ID: {video.asset_id}</span>
+                    {video.is_pending && (
+                      <div className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                        PENDING
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       video['Performance Label'] === 'BEST' ? 'bg-green-100 text-green-800' :
                       video['Performance Label'] === 'GOOD' ? 'bg-blue-100 text-blue-800' :
@@ -822,7 +844,11 @@ export default function AssetGroupDetailPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {assets.landingPages?.map((landingPage) => (
-                    <div key={landingPage.asset_id} className="group bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 overflow-hidden">
+                    <div key={landingPage.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
+                      landingPage.is_pending 
+                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
+                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                    }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
@@ -893,11 +919,18 @@ export default function AssetGroupDetailPage() {
                     </a>
                   </div>
                   
-                  <div className="flex items-center justify-between text-sm text-gray-500">
+                  <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
                     <div className="flex items-center gap-4">
                       <span>ID: {landingPage.asset_id}</span>
                       <span>{landingPage['Landing Page URL']?.length || 0} chars</span>
                     </div>
+                    {landingPage.is_pending && (
+                      <div className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                        PENDING
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         landingPage['Performance Label'] === 'BEST' ? 'bg-green-100 text-green-800' :
