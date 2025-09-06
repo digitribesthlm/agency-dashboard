@@ -112,7 +112,7 @@ async function handlePost(req, res, db, session) {
     field_type: field_type || asset_type,
     landing_page_url: landing_page_url || '',
     status: 'ACTIVE',
-    is_pending: true, // User-added assets are pending
+    is_pending: true, // User-added assets are pending until synced with Google Ads
     created_by: session.user.email,
     last_modified_by: session.user.email,
     created_at: new Date(),
