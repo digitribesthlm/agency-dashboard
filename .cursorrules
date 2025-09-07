@@ -1,0 +1,238 @@
+# Next.js + MongoDB JavaScript Project Rules
+
+## General Preferences
+- Use JavaScript (not TypeScript) for all files
+- Prefer functional components over class components
+- Use ES6+ features like arrow functions, destructuring, and async/await
+- Always use proper error handling with try-catch blocks
+- Write self-documenting code with clear variable and function names
+- Keep functions small and focused on single responsibilities
+
+## Next.js Specific
+- Use Next.js 13+ App Router structure when possible
+- Always use proper Next.js imports (next/link, next/image, next/router)
+- Follow Next.js file naming conventions (page.js, layout.js, loading.js)
+- Use Next.js built-in optimization features (Image, Link components)
+- Always include proper metadata and SEO considerations
+- Use getServerSideProps or getStaticProps appropriately for data fetching
+- Implement proper API route structure in /pages/api/
+
+## MongoDB & Database
+- Use MongoDB with native driver (not Mongoose for this project)
+- Always include proper connection handling and error management
+- Use environment variables for database connections (MONGODB_URI)
+- Include proper data validation before database operations
+- Always close database connections properly
+- Use connection pooling for better performance
+- Implement proper indexing for frequently queried fields
+
+## DaisyUI & Styling
+- Use DaisyUI components as the primary UI framework
+- Follow DaisyUI naming conventions for classes and themes
+- Use Tailwind CSS utilities for custom styling when DaisyUI components aren't sufficient
+- Prefer DaisyUI semantic color classes (primary, secondary, accent, neutral)
+- Use DaisyUI responsive utilities for mobile-first design
+- Implement proper dark/light theme support using DaisyUI themes
+- Use DaisyUI form components (input, select, textarea, button) consistently
+
+## Data Hierarchy & Structure
+- Understand the 3-level data hierarchy: Campaigns → Asset Groups → Assets
+- Always filter data by status (exclude 'REMOVED' assets from display)
+- Use single 'assets' collection with proper filtering instead of multiple collections
+- Implement proper data grouping: group assets by campaign_id and asset_group_id
+- Always include campaign context when displaying asset groups
+- Always include asset group context when displaying assets
+
+## API Design Patterns
+- Use RESTful API design principles
+- Implement consistent response formats: { success: boolean, data: any, message: string }
+- Always validate request parameters and body data
+- Use proper HTTP status codes (200, 201, 400, 401, 404, 500)
+- Implement proper authentication checks using NextAuth
+- Log all data changes to 'asset_changes' collection for audit trail
+- Use consistent field naming (snake_case for database, camelCase for frontend)
+
+## State Management
+- Use React hooks (useState, useEffect) for local state
+- Implement proper loading states for all async operations
+- Use optimistic updates for better UX (update UI immediately, then sync with server)
+- Always refresh data after mutations (add, edit, delete operations)
+- Handle race conditions in async operations
+- Implement proper error states and user feedback
+
+## Error Prevention & Handling
+- Always validate props and data before rendering
+- Include loading states for async operations
+- Handle edge cases (empty arrays, null values, undefined)
+- Use proper error boundaries for React components
+- Include comprehensive error messages for debugging
+- Implement user-friendly error messages for production
+- Always check if data exists before accessing nested properties
+
+## Security Best Practices
+- Always validate and sanitize user input
+- Use environment variables for sensitive data
+- Implement proper authentication and authorization
+- Never expose sensitive data in client-side code
+- Use HTTPS in production
+- Implement proper CORS settings
+- Validate file uploads and limit file sizes
+
+## Performance Optimization
+- Use React.memo for expensive components
+- Implement proper image optimization with Next.js Image component
+- Use lazy loading for large lists
+- Implement pagination for large datasets
+- Use proper caching strategies
+- Minimize bundle size by importing only needed modules
+- Use proper database indexing for query optimization
+
+## Code Organization
+- Keep components small and reusable
+- Separate business logic from UI components
+- Use custom hooks for reusable logic
+- Organize files by feature, not by type
+- Use consistent naming conventions throughout the project
+- Keep API routes focused and single-purpose
+- Implement proper separation of concerns
+
+## Testing & Debugging
+- Include console.log statements for debugging during development
+- Use meaningful variable names for easier debugging
+- Implement proper error logging
+- Test edge cases and error scenarios
+- Verify data persistence after page refreshes
+- Test responsive design on different screen sizes
+
+## User Experience
+- Provide immediate feedback for user actions
+- Implement proper loading indicators
+- Use consistent UI patterns throughout the application
+- Ensure accessibility with proper ARIA labels
+- Implement keyboard navigation support
+- Provide clear error messages and recovery options
+- Use progressive enhancement principles
+
+## Asset Management Specific Rules
+- Always filter assets by status !== 'REMOVED' when displaying
+- Group assets by type (IMAGE, YOUTUBE_VIDEO, TEXT) for display
+- Implement proper asset type detection and handling
+- Use consistent asset URL handling for different types
+- Implement proper asset preview functionality
+- Track all asset changes with proper metadata (user, timestamp, action)
+
+## Change Tracking Requirements
+- Log every asset modification to 'asset_changes' collection
+- Include full context: campaign_id, asset_group_id, user info
+- Track actions: ADD, REMOVE, PAUSE, RESUME, EDIT
+- Provide admin visibility into all user changes
+- Implement proper change history display
+- Include rollback capabilities where appropriate
+
+
+
+## CRITICAL SECURITY RULES - NEVER VIOLATE
+
+### Authentication Requirements
+- **NEVER remove authentication checks from API routes** - Every API endpoint MUST verify user session
+- **NEVER comment out authentication for testing** - Use proper test accounts instead
+- **ALWAYS restore authentication** if temporarily disabled - No exceptions
+- **NEVER skip getServerSession() calls** - Required for all protected routes
+- **ALWAYS check session.user exists** before processing requests
+- **NEVER hardcode authentication bypasses** - No "if (testing)" conditions
+- **ALWAYS return 401 Unauthorized** for missing or invalid sessions
+
+### Required Authentication Pattern
+```javascript
+// MANDATORY pattern for ALL API routes:
+const session = await getServerSession(req, res, authOptions);
+if (!session || !session.user) {
+  return res.status(401).json({ success: false, message: 'Unauthorized' });
+}
+// Only proceed with business logic after authentication check
+```
+
+### Database Integration Rules
+- **NEVER hardcode response data** - Always fetch from actual database
+- **NEVER return mock/fake data** - Use real MongoDB queries only
+- **NEVER skip database operations** - Every data request must hit the database
+- **ALWAYS use actual MongoDB connection** - No simulated responses
+- **NEVER return static arrays** - Data must come from collections
+- **ALWAYS handle database errors properly** - No silent failures
+- **NEVER use placeholder data** - Real data or proper error handling only
+
+### Forbidden Shortcuts
+- **NEVER return hardcoded status codes without database checks**
+- **NEVER simulate successful operations without actual database writes**
+- **NEVER return empty arrays instead of querying database**
+- **NEVER use setTimeout() to simulate async operations**
+- **NEVER return { success: true } without actual operation completion**
+- **NEVER skip error handling to "simplify" code**
+- **NEVER use console.log as the only error handling mechanism**
+
+### Database Connection Requirements
+- **ALWAYS establish actual MongoDB connection** using connectToDatabase()
+- **ALWAYS verify connection before proceeding** with operations
+- **ALWAYS close connections properly** after operations
+- **NEVER assume database operations succeed** - Always check results
+- **ALWAYS validate data exists** before returning success responses
+- **NEVER return success for failed database operations**
+
+### Data Validation Rules
+- **ALWAYS validate required fields** before database operations
+- **NEVER trust client-side data** - Validate everything server-side
+- **ALWAYS sanitize user input** before database queries
+- **NEVER skip input validation** for "simple" operations
+- **ALWAYS check data types** match expected formats
+- **NEVER allow SQL injection** or NoSQL injection attacks
+
+### Error Handling Requirements
+- **ALWAYS implement proper try-catch blocks** around database operations
+- **NEVER let errors crash the application** - Handle all exceptions
+- **ALWAYS return meaningful error messages** to help debugging
+- **NEVER expose sensitive error details** to client
+- **ALWAYS log errors server-side** for debugging
+- **NEVER ignore database connection errors**
+
+### Session Management
+- **ALWAYS verify user permissions** for the requested operation
+- **NEVER allow users to access other users' data** without proper authorization
+- **ALWAYS include user context** in database operations (created_by, modified_by)
+- **NEVER skip role-based access control** checks
+- **ALWAYS validate user belongs to the account/campaign** they're accessing
+
+### Production Safety Rules
+- **NEVER deploy code with authentication disabled**
+- **NEVER commit hardcoded credentials** or connection strings
+- **ALWAYS use environment variables** for sensitive configuration
+- **NEVER expose internal system details** in error messages
+- **ALWAYS implement rate limiting** for API endpoints
+- **NEVER allow unrestricted file uploads** or data input
+
+### Testing Guidelines
+- **ALWAYS use test accounts** instead of disabling authentication
+- **NEVER test in production** with real user data
+- **ALWAYS restore security measures** after testing
+- **NEVER commit test code** that bypasses security
+- **ALWAYS verify authentication works** before deploying
+
+### Code Review Checklist
+Before completing any task, verify:
+- ✅ Authentication check is present and functional
+- ✅ Database connection is established and used
+- ✅ Real data is fetched from MongoDB collections
+- ✅ Error handling covers all failure scenarios
+- ✅ User permissions are validated
+- ✅ No hardcoded responses or mock data
+- ✅ All database operations are properly executed
+- ✅ Session management is implemented correctly
+
+### IMMEDIATE RED FLAGS - STOP AND FIX
+- Any API route without authentication check
+- Any hardcoded return values instead of database queries
+- Any commented-out security code
+- Any mock data or placeholder responses
+- Any database operations without error handling
+- Any user input without validation
+- Any missing session verification
+

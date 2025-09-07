@@ -63,6 +63,7 @@ async function handleGet(req, res, db) {
     'Asset URL': asset.asset_url,
     'Campaign ID': asset.campaign_id,
     'Campaign Name': asset.campaign_name,
+    'Campaign Status': asset.campaign_status || 'UNKNOWN',
     'AssetGroup ID': asset.asset_group_id,
     'Asset Group Name': asset.asset_group_name,
     'Text Content': asset.text_content,

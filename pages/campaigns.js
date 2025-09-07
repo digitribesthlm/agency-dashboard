@@ -38,21 +38,26 @@ export default function CampaignsPage() {
           campaignMap.set(campaignId, {
             campaignId: campaignId,
             campaignName: asset.campaign_name,
+            campaignStatus: asset['Campaign Status'] || asset.campaign_status || 'UNKNOWN',
             assetGroups: new Set(),
-            totalAssets: 0
+            totalAssets: 0,
+            assetStatuses: new Set()
           });
         }
         
         const campaign = campaignMap.get(campaignId);
         campaign.assetGroups.add(assetGroupId);
         campaign.totalAssets++;
+        campaign.assetStatuses.add(asset.status);
       });
       
       // Convert to array and add asset group counts
-      const campaignsArray = Array.from(campaignMap.values()).map(campaign => ({
-        ...campaign,
-        assetGroupCount: campaign.assetGroups.size
-      }));
+      const campaignsArray = Array.from(campaignMap.values()).map(campaign => {
+        return {
+          ...campaign,
+          assetGroupCount: campaign.assetGroups.size
+        };
+      });
       
       setCampaigns(campaignsArray);
     } catch (error) {
@@ -100,7 +105,14 @@ export default function CampaignsPage() {
                 <div className="card-body">
                   {/* Status Badge and Asset Group Count */}
                   <div className="flex justify-between items-start mb-4">
-                    <span className="badge badge-success">ENABLED</span>
+                    <span className={`badge ${
+                      campaign.campaignStatus === 'ENABLED' ? 'badge-success' :
+                      campaign.campaignStatus === 'PAUSED' ? 'badge-warning' :
+                      campaign.campaignStatus === 'REMOVED' ? 'badge-error' :
+                      'badge-neutral'
+                    }`}>
+                      {campaign.campaignStatus || 'UNKNOWN'}
+                    </span>
                     <span className="badge badge-primary">
                       Asset Groups: {campaign.assetGroupCount}
                     </span>
