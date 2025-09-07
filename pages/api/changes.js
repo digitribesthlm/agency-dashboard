@@ -17,10 +17,14 @@ export default async function handler(req, res) {
   const { db } = await connectToDatabase();
 
   try {
-    const { asset_group_id, needs_update, limit = 100 } = req.query;
+    const { campaign_id, asset_group_id, needs_update, limit = 100 } = req.query;
 
     // Build query for asset_changes collection
     const query = {};
+    
+    if (campaign_id) {
+      query.campaign_id = campaign_id;
+    }
     
     if (asset_group_id) {
       query.asset_group_id = asset_group_id;

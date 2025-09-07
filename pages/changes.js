@@ -89,6 +89,10 @@ export default function ChangesPage() {
       let url = `/api/changes`;
       const params = new URLSearchParams();
       
+      if (selectedCampaign !== 'all') {
+        params.append('campaign_id', selectedCampaign);
+      }
+      
       if (selectedAssetGroup !== 'all') {
         params.append('asset_group_id', selectedAssetGroup);
       }
@@ -251,15 +255,8 @@ export default function ChangesPage() {
                   value={selectedCampaign}
                   onChange={(e) => {
                     const newCampaign = e.target.value;
-                    console.log('🔍 DEBUG - Campaign selected:', newCampaign);
                     setSelectedCampaign(newCampaign);
                     setSelectedAssetGroup('all'); // Reset asset group when campaign changes
-                    
-                    // Debug: Show filtered asset groups
-                    const filteredGroups = assetGroups.filter(ag => 
-                      newCampaign === 'all' || ag['Campaign ID'] === newCampaign
-                    );
-                    console.log('🔍 DEBUG - Filtered Asset Groups:', filteredGroups.length, filteredGroups);
                   }}
                 >
                   <option value="all">All Campaigns</option>
