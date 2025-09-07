@@ -311,35 +311,29 @@ export default function AssetGroupDetailPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-6 py-8">
-          {/* Breadcrumb */}
-          <nav className="flex items-center space-x-2 text-sm text-gray-500 mb-6">
-            <a href="/campaigns" className="hover:text-gray-700 transition-colors">Campaigns</a>
-            <span>›</span>
-            <a href={`/campaigns/${campaignId}`} className="hover:text-gray-700 transition-colors">{campaign?.campaignName}</a>
-            <span>›</span>
-            <span className="text-gray-700 font-medium">{assetGroup?.assetGroupName}</span>
-          </nav>
-
-          {/* Header */}
+      <div className="min-h-screen bg-base-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header Box */}
           <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {assetGroup?.assetGroupName}
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Manage and optimize your advertising assets
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => router.back()}
-                  className="btn btn-outline btn-sm"
-                >
-                  ← Back
-                </button>
+            <div className="breadcrumbs text-sm text-base-content/70">
+              <ul>
+                <li><a href="/campaigns" className="link link-hover">Campaigns</a></li>
+                <li><a href={`/campaigns/${campaignId}`} className="link link-hover">{campaign?.campaignName || 'Campaign'}</a></li>
+                <li><a className="link link-hover">{assetGroup?.assetGroupName || 'Asset Group'}</a></li>
+              </ul>
+            </div>
+            <div className="mt-3 card bg-base-100 border border-base-300 shadow-sm">
+              <div className="card-body p-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div>
+                    <h1 className="text-2xl md:text-3xl font-bold">{assetGroup?.assetGroupName || 'Asset Group'}</h1>
+                    <p className="text-base-content/70 mt-1">Manage and optimize your advertising assets for this asset group.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a href="/changes" className="btn btn-outline btn-sm">Show History</a>
+                    <button onClick={() => router.back()} className="btn btn-ghost btn-sm">← Back</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -384,51 +378,54 @@ export default function AssetGroupDetailPage() {
                   {assets.headlines?.map((asset) => (
                     <div key={asset.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
                       asset.is_pending 
-                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
-                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                        ? 'bg-warning/5 border-warning/20 hover:border-warning/30' 
+                        : 'bg-base-100 border-base-300 hover:border-base-400'
                     }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <span className="text-sm font-medium text-gray-500">HEADLINE</span>
+                      <span className="text-sm font-medium text-base-content/60">HEADLINE</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {asset.is_pending && (
-                        <div className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                        <div className="badge badge-warning badge-sm gap-1">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 001.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                          </svg>
                           PENDING
                         </div>
                       )}
                       <div className="tooltip" data-tip={`Performance: ${asset['Performance Label'] || 'UNKNOWN'}`}>
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                          asset['Performance Label'] === 'BEST' ? 'bg-green-100' :
-                          asset['Performance Label'] === 'GOOD' ? 'bg-blue-100' :
-                          asset['Performance Label'] === 'LOW' ? 'bg-red-100' :
-                          asset['Performance Label'] === 'PENDING' ? 'bg-yellow-100' :
-                          'bg-gray-100'
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          asset['Performance Label'] === 'BEST' ? 'bg-success/20' :
+                          asset['Performance Label'] === 'GOOD' ? 'bg-info/20' :
+                          asset['Performance Label'] === 'LOW' ? 'bg-error/20' :
+                          asset['Performance Label'] === 'PENDING' ? 'bg-warning/20' :
+                          'bg-base-300'
                         }`}>
                           {asset['Performance Label'] === 'BEST' ? (
-                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                           ) : asset['Performance Label'] === 'GOOD' ? (
-                            <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-info" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
                             </svg>
                           ) : asset['Performance Label'] === 'LOW' ? (
-                            <svg className="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-error" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
                             </svg>
                           ) : asset['Performance Label'] === 'PENDING' ? (
-                            <svg className="w-3 h-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-warning" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                             </svg>
                           ) : (
-                            <svg className="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-base-content/40" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                             </svg>
                           )}
@@ -501,8 +498,8 @@ export default function AssetGroupDetailPage() {
                   {assets.longHeadlines?.map((asset) => (
                     <div key={asset.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
                       asset.is_pending 
-                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
-                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                        ? 'bg-warning/5 border-warning/20 hover:border-warning/30' 
+                        : 'bg-base-100 border-base-300 hover:border-base-400'
                     }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
@@ -516,36 +513,39 @@ export default function AssetGroupDetailPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {asset.is_pending && (
-                        <div className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
+                        <div className="badge badge-warning badge-sm gap-1">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 001.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                          </svg>
                           PENDING
                         </div>
                       )}
                       <div className="tooltip" data-tip={`Performance: ${asset['Performance Label'] || 'UNKNOWN'}`}>
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                          asset['Performance Label'] === 'BEST' ? 'bg-green-100' :
-                          asset['Performance Label'] === 'GOOD' ? 'bg-blue-100' :
-                          asset['Performance Label'] === 'LOW' ? 'bg-red-100' :
-                          asset['Performance Label'] === 'PENDING' ? 'bg-yellow-100' :
-                          'bg-gray-100'
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          asset['Performance Label'] === 'BEST' ? 'bg-success/20' :
+                          asset['Performance Label'] === 'GOOD' ? 'bg-info/20' :
+                          asset['Performance Label'] === 'LOW' ? 'bg-error/20' :
+                          asset['Performance Label'] === 'PENDING' ? 'bg-warning/20' :
+                          'bg-base-300'
                         }`}>
                           {asset['Performance Label'] === 'BEST' ? (
-                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                           ) : asset['Performance Label'] === 'GOOD' ? (
-                            <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-info" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
                             </svg>
                           ) : asset['Performance Label'] === 'LOW' ? (
-                            <svg className="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-error" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
                             </svg>
                           ) : asset['Performance Label'] === 'PENDING' ? (
-                            <svg className="w-3 h-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-warning" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                             </svg>
                           ) : (
-                            <svg className="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-base-content/40" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                             </svg>
                           )}
@@ -618,8 +618,8 @@ export default function AssetGroupDetailPage() {
                   {assets.images?.map((image) => (
                     <div key={image.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
                       image.is_pending 
-                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
-                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                        ? 'bg-warning/5 border-warning/20 hover:border-warning/30' 
+                        : 'bg-base-100 border-base-300 hover:border-base-400'
                     }`}>
                 <div className="relative">
                   <img
@@ -737,8 +737,8 @@ export default function AssetGroupDetailPage() {
                   {assets.videos?.map((video) => (
                     <div key={video.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
                       video.is_pending 
-                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
-                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                        ? 'bg-warning/5 border-warning/20 hover:border-warning/30' 
+                        : 'bg-base-100 border-base-300 hover:border-base-400'
                     }`}>
                 <div className="relative">
                   <div className="aspect-video bg-gray-200 rounded-t-xl overflow-hidden">
@@ -823,12 +823,12 @@ export default function AssetGroupDetailPage() {
 
           {/* Landing Pages Section */}
           <div className="mb-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
+            <div className="card bg-base-100 shadow-sm border border-base-300">
+              <div className="card-body p-6">
+                <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Landing Pages</h3>
-                    <p className="text-sm text-gray-500 mt-1">{assets.landingPages?.length || 0} assets</p>
+                    <h3 className="text-lg font-semibold text-base-content">Landing Pages</h3>
+                    <p className="text-sm text-base-content/60 mt-1">{assets.landingPages?.length || 0} assets</p>
                   </div>
                   <button 
                     className="btn btn-primary btn-sm"
@@ -846,46 +846,54 @@ export default function AssetGroupDetailPage() {
                   {assets.landingPages?.map((landingPage) => (
                     <div key={landingPage.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
                       landingPage.is_pending 
-                        ? 'bg-yellow-50 border-yellow-200 hover:border-yellow-300' 
-                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                        ? 'bg-warning/5 border-warning/20 hover:border-warning/30' 
+                        : 'bg-base-100 border-base-300 hover:border-base-400'
                     }`}>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="w-8 h-8 bg-success/10 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <span className="text-sm font-medium text-gray-500">LANDING_PAGE</span>
+                      <span className="text-sm font-medium text-base-content/60">LANDING_PAGE</span>
                     </div>
                     <div className="flex items-center gap-2">
+                      {landingPage.is_pending && (
+                        <div className="badge badge-warning badge-sm gap-1">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 001.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                          </svg>
+                          PENDING
+                        </div>
+                      )}
                       <div className="tooltip" data-tip={`Performance: ${landingPage['Performance Label'] || 'UNKNOWN'}`}>
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                          landingPage['Performance Label'] === 'BEST' ? 'bg-green-100' :
-                          landingPage['Performance Label'] === 'GOOD' ? 'bg-blue-100' :
-                          landingPage['Performance Label'] === 'LOW' ? 'bg-red-100' :
-                          landingPage['Performance Label'] === 'PENDING' ? 'bg-yellow-100' :
-                          'bg-gray-100'
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          landingPage['Performance Label'] === 'BEST' ? 'bg-success/20' :
+                          landingPage['Performance Label'] === 'GOOD' ? 'bg-info/20' :
+                          landingPage['Performance Label'] === 'LOW' ? 'bg-error/20' :
+                          landingPage['Performance Label'] === 'PENDING' ? 'bg-warning/20' :
+                          'bg-base-300'
                         }`}>
                           {landingPage['Performance Label'] === 'BEST' ? (
-                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                           ) : landingPage['Performance Label'] === 'GOOD' ? (
-                            <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-info" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
                             </svg>
                           ) : landingPage['Performance Label'] === 'LOW' ? (
-                            <svg className="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-error" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
                             </svg>
                           ) : landingPage['Performance Label'] === 'PENDING' ? (
-                            <svg className="w-3 h-3 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-warning" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                             </svg>
                           ) : (
-                            <svg className="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 text-base-content/40" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                             </svg>
                           )}

@@ -83,16 +83,29 @@ export default function CampaignsPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="breadcrumbs text-sm mb-6">
-          <ul>
-            <li><a className="link link-hover">Campaigns</a></li>
-            <li><a className="link link-hover">Changes Tracking</a></li>
-          </ul>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Box */}
+        <div className="mb-8">
+          <div className="breadcrumbs text-sm text-base-content/70">
+            <ul>
+              <li><a className="link link-hover" href="/campaigns">Campaigns</a></li>
+              <li><a className="link link-hover" href="/changes">Changes Tracking</a></li>
+            </ul>
+          </div>
+          <div className="mt-3 card bg-base-100 border border-base-300 shadow-sm">
+            <div className="card-body p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold">Campaigns</h1>
+                  <p className="text-base-content/70 mt-1">Overview of all Performance Max campaigns with asset group counts and statuses.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="badge badge-primary badge-outline">Total: {campaigns.length}</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <h1 className="text-3xl font-bold mb-8">Campaigns ({campaigns.length})</h1>
         
         {campaigns.length === 0 ? (
           <div className="text-center py-12">

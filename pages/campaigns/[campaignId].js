@@ -100,30 +100,36 @@ export default function CampaignAssetGroupsPage() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="breadcrumbs text-sm mb-6">
-          <ul>
-            <li><a href="/campaigns" className="link link-hover">Campaigns</a></li>
-            <li><a className="link link-hover">Changes Tracking</a></li>
-            <li><a className="link link-hover">{campaign?.campaignName}</a></li>
-          </ul>
-        </div>
-
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Asset Groups ({assetGroups.length})</h1>
-          <div className="flex items-center gap-4">
-            <div className="form-control">
-              <label className="label cursor-pointer">
-                <span className="label-text mr-2">Show Removed</span>
-                <input 
-                  type="checkbox" 
-                  className="toggle toggle-sm" 
-                  checked={showRemoved}
-                  onChange={(e) => setShowRemoved(e.target.checked)}
-                />
-              </label>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Box */}
+        <div className="mb-8">
+          <div className="breadcrumbs text-sm text-base-content/70">
+            <ul>
+              <li><a href="/campaigns" className="link link-hover">Campaigns</a></li>
+              <li><a href="/changes" className="link link-hover">Changes Tracking</a></li>
+              <li><a className="link link-hover">{campaign?.campaignName || 'Campaign'}</a></li>
+            </ul>
+          </div>
+          <div className="mt-3 card bg-base-100 border border-base-300 shadow-sm">
+            <div className="card-body p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold">Asset Groups</h1>
+                  <p className="text-base-content/70 mt-1">Browse asset groups for this campaign and drill down to assets.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="badge badge-primary badge-outline">Groups: {assetGroups.length}</div>
+                  <label className="label cursor-pointer gap-2">
+                    <span className="label-text">Show Removed</span>
+                    <input 
+                      type="checkbox" 
+                      className="toggle toggle-sm" 
+                      checked={showRemoved}
+                      onChange={(e) => setShowRemoved(e.target.checked)}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         </div>
