@@ -23,16 +23,9 @@ export default function Layout({ children }) {
             <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
               {session && (
                 <>
-                  {session.user.role === 'admin' && (
-                    <li>
-                      <Link href="/admin/dashboard" className={router.pathname === '/admin/dashboard' ? 'active' : ''}>
-                        Admin Dashboard
-                      </Link>
-                    </li>
-                  )}
                   <li>
-                    <Link href="/client/dashboard" className={router.pathname === '/client/dashboard' ? 'active' : ''}>
-                      Performance Max Dashboard
+                    <Link href="/campaigns" className={router.pathname === '/campaigns' ? 'active' : ''}>
+                      Performance Max Ads
                     </Link>
                   </li>
                   <li>
@@ -40,16 +33,13 @@ export default function Layout({ children }) {
                       Create Performance Max Ad
                     </Link>
                   </li>
-                  <li>
-                    <Link href="/campaigns" className={router.pathname === '/campaigns' ? 'active' : ''}>
-                      Campaigns
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/changes" className={router.pathname === '/changes' ? 'active' : ''}>
-                      Changes
-                    </Link>
-                  </li>
+                  {session.user.role === 'admin' && (
+                    <li>
+                      <Link href="/changes" className={router.pathname === '/changes' ? 'active' : ''}>
+                        Changes
+                      </Link>
+                    </li>
+                  )}
                 </>
               )}
             </ul>
@@ -70,28 +60,15 @@ export default function Layout({ children }) {
         <div className="navbar-center hidden lg:flex">
           {session && (
             <ul className="menu menu-horizontal px-1">
-              {session.user.role === 'admin' && (
-                <li>
-                  <Link 
-                    href="/admin/dashboard" 
-                    className={`btn btn-ghost ${router.pathname === '/admin/dashboard' ? 'btn-active' : ''}`}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Admin Dashboard
-                  </Link>
-                </li>
-              )}
               <li>
                 <Link 
-                  href="/client/dashboard" 
-                  className={`btn btn-ghost ${router.pathname === '/client/dashboard' ? 'btn-active' : ''}`}
+                  href="/campaigns" 
+                  className={`btn btn-ghost ${router.pathname === '/campaigns' ? 'btn-active' : ''}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
-                  Performance Max Dashboard
+                  Performance Max Ads
                 </Link>
               </li>
               <li>
@@ -105,28 +82,19 @@ export default function Layout({ children }) {
                   Create Performance Max Ad
                 </Link>
               </li>
-              <li>
-                <Link 
-                  href="/campaigns" 
-                  className={`btn btn-ghost ${router.pathname === '/campaigns' ? 'btn-active' : ''}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                  Campaigns
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/changes" 
-                  className={`btn btn-ghost ${router.pathname === '/changes' ? 'btn-active' : ''}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                  </svg>
-                  Changes
-                </Link>
-              </li>
+              {session.user.role === 'admin' && (
+                <li>
+                  <Link 
+                    href="/changes" 
+                    className={`btn btn-ghost ${router.pathname === '/changes' ? 'btn-active' : ''}`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    Changes
+                  </Link>
+                </li>
+              )}
             </ul>
           )}
         </div>
