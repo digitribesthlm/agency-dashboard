@@ -106,7 +106,6 @@ export default function CampaignAssetGroupsPage() {
           <div className="breadcrumbs text-sm text-base-content/70">
             <ul>
               <li><a href="/campaigns" className="link link-hover">Campaigns</a></li>
-              <li><a href="/changes" className="link link-hover">Changes Tracking</a></li>
               <li><a className="link link-hover">{campaign?.campaignName || 'Campaign'}</a></li>
             </ul>
           </div>

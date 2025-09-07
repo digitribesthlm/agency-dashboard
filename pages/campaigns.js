@@ -89,7 +89,6 @@ export default function CampaignsPage() {
           <div className="breadcrumbs text-sm text-base-content/70">
             <ul>
               <li><a className="link link-hover" href="/campaigns">Campaigns</a></li>
-              <li><a className="link link-hover" href="/changes">Changes Tracking</a></li>
             </ul>
           </div>
           <div className="mt-3 card bg-base-100 border border-base-300 shadow-sm">

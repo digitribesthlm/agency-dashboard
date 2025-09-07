@@ -189,7 +189,6 @@ export default function ChangesPage() {
         <div className="mb-8">
           <div className="breadcrumbs text-sm text-base-content/70">
             <ul>
-              <li><a href="/campaigns" className="link link-hover">Campaigns</a></li>
               <li><a className="link link-hover">Changes Tracking</a></li>
             </ul>
           </div>

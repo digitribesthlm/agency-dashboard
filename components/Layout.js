@@ -103,29 +103,43 @@ export default function Layout({ children }) {
         <div className="navbar-end">
           {session ? (
             <div className="dropdown dropdown-end">
-              <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
-                <div className="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                  <span className="text-sm font-semibold">
+              <div tabIndex={0} role="button" className="btn btn-ghost">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center font-semibold text-sm">
                     {session.user.email?.charAt(0).toUpperCase()}
-                  </span>
+                  </div>
+                  <div className="hidden sm:block text-left">
+                    <div className="text-sm font-medium text-base-content">
+                      {session.user.name || 'User'}
+                    </div>
+                    <div className="text-xs text-base-content/60 truncate max-w-[150px]">
+                      {session.user.email}
+                    </div>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
                 </div>
               </div>
-              <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                <li className="menu-title">
-                  <span>{session.user.email}</span>
-                </li>
-                <li className="menu-title">
-                  <span className="text-xs text-base-content/60">
-                    {session.user.role === 'admin' ? 'Administrator' : 'User'}
-                  </span>
+              <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-64">
+                <li>
+                  <div className="px-3 py-2 text-sm">
+                    <div className="font-medium text-base-content">{session.user.name || 'User'}</div>
+                    <div className="text-base-content/60 break-all">{session.user.email}</div>
+                    <div className="text-xs text-base-content/40 mt-1">
+                      Role: {session.user.role || 'user'}
+                    </div>
+                  </div>
                 </li>
                 <div className="divider my-1"></div>
                 <li>
-                  <button onClick={() => signOut()} className="text-error">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Sign Out
+                  <button onClick={() => signOut()} className="text-error hover:text-error">
+                    <span className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Logout
+                    </span>
                   </button>
                 </li>
               </ul>
