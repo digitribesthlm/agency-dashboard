@@ -17,10 +17,10 @@ export default async function handler(req, res) {
   const { db } = await connectToDatabase();
 
   try {
-    const { campaign_id, asset_group_id, needs_update, limit = 100 } = req.query;
+    const { campaign_id, asset_group_id, needs_update, status, limit = 100 } = req.query;
 
     // Build query for asset_changes collection
-    const query = {};
+    let query = {};
     
     if (campaign_id) {
       query.campaign_id = campaign_id;
@@ -32,6 +32,31 @@ export default async function handler(req, res) {
     
     if (needs_update === 'true') {
       query.needs_google_ads_update = true;
+    }
+
+    // Add status filter
+    if (status === 'completed') {
+      query.status = 'completed';
+    } else if (status === 'pending') {
+      // For pending, we want records that either don't have status field or status is not 'completed'
+      // We need to restructure the query to handle this properly
+      const baseQuery = { ...query };
+      query = {
+        $and: [
+          baseQuery,
+          {
+            $or: [
+              { status: { $exists: false } },
+              { status: { $ne: 'completed' } }
+            ]
+          }
+        ]
+      };
+    }
+    
+    // If no status filter, show all changes (for backward compatibility)
+    if (!status) {
+      // Don't add any status filter - show everything
     }
 
     console.log('Changes query:', query);

@@ -13,6 +13,7 @@ export default function ChangesPage() {
   const [selectedAssetGroup, setSelectedAssetGroup] = useState('all');
   const [campaigns, setCampaigns] = useState([]);
   const [assetGroups, setAssetGroups] = useState([]);
+  const [activeTab, setActiveTab] = useState('pending'); // pending, completed
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -27,7 +28,7 @@ export default function ChangesPage() {
     }
     fetchCampaignsAndAssetGroups();
     fetchChanges();
-  }, [session, status, filter, dateRange, selectedCampaign, selectedAssetGroup]);
+  }, [session, status, filter, dateRange, selectedCampaign, selectedAssetGroup, activeTab]);
 
   const fetchCampaignsAndAssetGroups = async () => {
     try {
@@ -84,7 +85,7 @@ export default function ChangesPage() {
   const fetchChanges = async () => {
     try {
       setLoading(true);
-      console.log('Fetching changes with params:', { filter, dateRange, selectedCampaign, selectedAssetGroup });
+      console.log('Fetching changes with params:', { filter, dateRange, selectedCampaign, selectedAssetGroup, activeTab });
       
       let url = `/api/changes`;
       const params = new URLSearchParams();
@@ -99,6 +100,14 @@ export default function ChangesPage() {
       
       if (filter === 'needs-update') {
         params.append('needs_update', 'true');
+      }
+
+      // Add status filter based on active tab
+      if (activeTab === 'completed') {
+        params.append('status', 'completed');
+      } else {
+        // For pending, don't send status parameter to show all changes
+        // params.append('status', 'pending');
       }
       
       if (params.toString()) {
@@ -119,6 +128,27 @@ export default function ChangesPage() {
       console.error('Error fetching changes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const markAsComplete = async (changeId) => {
+    try {
+      const response = await fetch('/api/changes/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ changeId }),
+      });
+
+      if (response.ok) {
+        // Refresh the changes list
+        fetchChanges();
+      } else {
+        console.error('Failed to mark change as complete');
+      }
+    } catch (error) {
+      console.error('Error marking change as complete:', error);
     }
   };
 
@@ -205,6 +235,30 @@ export default function ChangesPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="mb-6">
+          <div className="tabs tabs-boxed">
+            <button 
+              className={`tab ${activeTab === 'pending' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('pending')}
+            >
+              Pending Changes
+              <div className="badge badge-warning badge-sm ml-2">
+                {changes.filter(c => c.status !== 'completed').length}
+              </div>
+            </button>
+            <button 
+              className={`tab ${activeTab === 'completed' ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab('completed')}
+            >
+              Completed Changes
+              <div className="badge badge-success badge-sm ml-2">
+                {changes.filter(c => c.status === 'completed').length}
+              </div>
+            </button>
           </div>
         </div>
 
@@ -328,6 +382,7 @@ export default function ChangesPage() {
                       <th className="w-44 text-left min-w-[140px] font-semibold">Asset Group</th>
                       <th className="w-40 text-left font-semibold">Changed By</th>
                       <th className="w-24 text-center font-semibold">Google Ads</th>
+                      <th className="w-32 text-center font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -449,6 +504,40 @@ export default function ChangesPage() {
                           ) : (
                             <div className="badge badge-success badge-sm">
                               ✅ Synced
+                            </div>
+                          )}
+                        </td>
+                        <td className="text-center">
+                          {activeTab === 'pending' && change.needs_google_ads_update && change.status !== 'completed' && (
+                            <div className="dropdown dropdown-end">
+                              <div tabIndex={0} role="button" className="btn btn-ghost btn-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                              </div>
+                              <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[1]">
+                                <li>
+                                  <button 
+                                    onClick={() => markAsComplete(change.id)}
+                                    className="text-success"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Mark as Complete
+                                  </button>
+                                </li>
+                              </ul>
+                            </div>
+                          )}
+                          {activeTab === 'completed' && change.status === 'completed' && (
+                            <div className="badge badge-success badge-sm">
+                              ✅ Completed
+                            </div>
+                          )}
+                          {activeTab === 'pending' && change.status === 'completed' && (
+                            <div className="badge badge-success badge-sm">
+                              ✅ Completed
                             </div>
                           )}
                         </td>
