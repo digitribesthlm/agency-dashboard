@@ -179,19 +179,35 @@ export default function ChangesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+    <div className="min-h-screen bg-base-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Box */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Changes Tracking</h1>
-          <p className="text-base-content/70">
-            Track all changes made to assets that need to be updated in Google Ads
-          </p>
+          <div className="breadcrumbs text-sm text-base-content/70">
+            <ul>
+              <li><a href="/campaigns" className="link link-hover">Campaigns</a></li>
+              <li><a className="link link-hover">Changes Tracking</a></li>
+            </ul>
+          </div>
+          <div className="mt-3 card bg-base-100 border border-base-300 shadow-sm">
+            <div className="card-body p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold">Changes Tracking</h1>
+                  <p className="text-base-content/70 mt-1">Track all changes made to assets that need to be updated in Google Ads.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="badge badge-primary badge-outline">Total: {changes.length}</div>
+                  <div className="badge badge-warning badge-outline">Needs Update: {changes.filter(c => c.needs_google_ads_update).length}</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="card bg-base-100 shadow-xl mb-6">
-          <div className="card-body">
+        <div className="card bg-base-100 shadow-sm border border-base-300 mb-6">
+          <div className="card-body p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
               <div className="form-control">
                 <label className="label">
@@ -280,13 +296,13 @@ export default function ChangesPage() {
             <div className="divider"></div>
             
             <div className="flex flex-wrap gap-4 items-center justify-between">
-              <div className="stats shadow">
+              <div className="stats shadow-sm border border-base-300">
                 <div className="stat">
-                  <div className="stat-title">Total Changes</div>
+                  <div className="stat-title text-base-content/60">Total Changes</div>
                   <div className="stat-value text-primary">{changes.length}</div>
                 </div>
                 <div className="stat">
-                  <div className="stat-title">Need Update</div>
+                  <div className="stat-title text-base-content/60">Need Update</div>
                   <div className="stat-value text-warning">
                     {changes.filter(c => c.needs_google_ads_update).length}
                   </div>
@@ -297,7 +313,7 @@ export default function ChangesPage() {
         </div>
 
         {/* Changes Table */}
-        <div className="card bg-base-100 shadow-xl">
+        <div className="card bg-base-100 shadow-sm border border-base-300">
           <div className="card-body p-0">
             {filteredChanges.length === 0 ? (
               <div className="p-8 text-center">
@@ -306,16 +322,16 @@ export default function ChangesPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="table table-zebra w-full">
-                  <thead>
+                  <thead className="bg-base-200">
                     <tr>
-                      <th className="w-32 text-left">Time</th>
-                      <th className="w-20 text-center">Action</th>
-                      <th className="w-28 text-left">Asset Type</th>
-                      <th className="text-left min-w-[300px]">Content Preview</th>
-                      <th className="w-48 text-left min-w-[180px]">Campaign</th>
-                      <th className="w-48 text-left min-w-[160px]">Asset Group</th>
-                      <th className="w-32 text-left">Changed By</th>
-                      <th className="w-24 text-center">Google Ads</th>
+                      <th className="w-32 text-left font-semibold">Time</th>
+                      <th className="w-20 text-center font-semibold">Action</th>
+                      <th className="w-28 text-left font-semibold">Asset Type</th>
+                      <th className="text-left min-w-[300px] font-semibold">Content Preview</th>
+                      <th className="w-44 text-left min-w-[160px] font-semibold">Campaign</th>
+                      <th className="w-44 text-left min-w-[140px] font-semibold">Asset Group</th>
+                      <th className="w-40 text-left font-semibold">Changed By</th>
+                      <th className="w-24 text-center font-semibold">Google Ads</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -414,18 +430,20 @@ export default function ChangesPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="text-left max-w-[180px]">
+                        <td className="text-left max-w-[160px]">
                           <div className="truncate" title={change.campaign_name || 'N/A'}>
                             {change.campaign_name || 'N/A'}
                           </div>
                         </td>
-                        <td className="text-left max-w-[160px]">
+                        <td className="text-left max-w-[140px]">
                           <div className="truncate" title={change.asset_group_name || 'N/A'}>
                             {change.asset_group_name || 'N/A'}
                           </div>
                         </td>
                         <td className="text-left">
-                          <div className="text-sm">{change.changed_by}</div>
+                          <div className="text-sm font-mono break-all max-w-[200px]" title={change.changed_by}>
+                            {change.changed_by}
+                          </div>
                         </td>
                         <td className="text-center">
                           {change.needs_google_ads_update ? (
