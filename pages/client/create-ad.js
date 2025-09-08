@@ -27,6 +27,122 @@ export default function CreateAd() {
   const [availableImages, setAvailableImages] = useState([]);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [availableVideos, setAvailableVideos] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const createOrUseIds = () => {
+    const generatedCampaignId = Date.now().toString();
+    const generatedAssetGroupId = `${generatedCampaignId}-ag`;
+
+    const finalCampaignId = isNewCampaign
+      ? generatedCampaignId
+      : (formData.campaignId || existingCampaigns.find(c => c.campaignName === formData.campaignName)?.campaignId || generatedCampaignId);
+
+    const finalAssetGroupId = isNewAssetGroup
+      ? generatedAssetGroupId
+      : (() => {
+          const selectedCampaign = existingCampaigns.find(c => c.campaignName === formData.campaignName);
+          const selectedGroup = selectedCampaign?.assetGroups.find(ag => ag.assetGroupName === formData.assetGroups[0].assetGroupName);
+          return selectedGroup?.assetGroupId || generatedAssetGroupId;
+        })();
+
+    return { finalCampaignId, finalAssetGroupId };
+  };
+
+  const submitCreateCampaign = async () => {
+    setSubmitError('');
+    setSubmitting(true);
+    try {
+      const { finalCampaignId, finalAssetGroupId } = createOrUseIds();
+
+      const campaignName = formData.campaignName || existingCampaigns.find(c => c.campaignId === finalCampaignId)?.campaignName || 'Untitled Campaign';
+      const assetGroupName = formData.assetGroups[0].assetGroupName || 'Default Asset Group';
+
+      const postAsset = async (payload) => {
+        const res = await fetch('/api/assets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            campaign_id: finalCampaignId,
+            campaign_name: campaignName,
+            asset_group_id: finalAssetGroupId,
+            asset_group_name: assetGroupName,
+            ...payload,
+          })
+        });
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(msg || 'Failed to create asset');
+        }
+        return res.json();
+      };
+
+      const requests = [];
+
+      // Headlines
+      formData.assetGroups[0].headlines
+        .filter(h => h && h['Text Content'])
+        .forEach(h => {
+          requests.push(postAsset({
+            asset_type: 'TEXT',
+            field_type: 'HEADLINE',
+            text_content: h['Text Content']
+          }));
+        });
+
+      // Descriptions
+      formData.assetGroups[0].descriptions
+        .filter(d => d && d['Text Content'])
+        .forEach(d => {
+          requests.push(postAsset({
+            asset_type: 'TEXT',
+            field_type: 'DESCRIPTION',
+            text_content: d['Text Content']
+          }));
+        });
+
+      // Images
+      formData.assetGroups[0].images
+        .filter(img => img && (img['Image URL'] || img['Asset URL']))
+        .forEach(img => {
+          requests.push(postAsset({
+            asset_type: 'IMAGE',
+            asset_url: img['Image URL'] || img['Asset URL']
+          }));
+        });
+
+      // Videos
+      formData.assetGroups[0].videos
+        .filter(v => v && v['Video ID'])
+        .forEach(v => {
+          const assetUrl = `https://www.youtube.com/watch?v=${v['Video ID']}`;
+          requests.push(postAsset({
+            asset_type: 'YOUTUBE_VIDEO',
+            asset_url: assetUrl,
+            text_content: v['Video Title'] || ''
+          }));
+        });
+
+      // Landing page
+      if (formData.assetGroups[0].finalUrl) {
+        requests.push(postAsset({
+          asset_type: 'TEXT',
+          field_type: 'LANDING_PAGE',
+          landing_page_url: formData.assetGroups[0].finalUrl
+        }));
+      }
+
+      await Promise.all(requests);
+
+      // Navigate to the new/existing asset group page
+      window.location.href = `/campaigns/${finalCampaignId}/${finalAssetGroupId}`;
+    } catch (err) {
+      console.error('Create campaign failed:', err);
+      setSubmitError('Failed to create campaign. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchExistingData = async () => {
@@ -809,15 +925,18 @@ export default function CreateAd() {
                 Back
               </button>
               <button 
-                className="btn btn-primary"
-                onClick={async () => {
-                  // TODO: Add your API call here to save the campaign
-                  console.log('Final form data:', formData);
-                }}
+                className={`btn btn-primary ${submitting ? 'loading' : ''}`}
+                onClick={submitCreateCampaign}
+                disabled={submitting}
               >
-                Create Campaign
+                {submitting ? 'Creating…' : 'Create Campaign'}
               </button>
             </div>
+            {submitError && (
+              <div className="alert alert-error mt-4">
+                <span>{submitError}</span>
+              </div>
+            )}
           </div>
         );
     }
