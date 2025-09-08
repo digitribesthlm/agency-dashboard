@@ -30,17 +30,46 @@ export default function CreateAd() {
 
   useEffect(() => {
     const fetchExistingData = async () => {
-      if (session?.user?.accountId) {
-        try {
-          const res = await fetch(`/api/assets?accountId=${session.user.accountId}`);
-          const data = await res.json();
-          if (data.success) {
-            console.log('Fetched campaigns:', data.data);
-            setExistingCampaigns(data.data);
+      try {
+        // Pull all assets and group them into campaigns and asset groups
+        const res = await fetch('/api/assets?all=true');
+        const assets = await res.json();
+
+        // Group by campaign and asset group
+        const campaignIdToData = new Map();
+
+        assets.forEach(asset => {
+          const campaignId = asset.campaign_id;
+          const campaignName = asset.campaign_name;
+          const assetGroupId = asset.asset_group_id;
+          const assetGroupName = asset.asset_group_name;
+
+          if (!campaignIdToData.has(campaignId)) {
+            campaignIdToData.set(campaignId, {
+              campaignId,
+              campaignName,
+              assetGroups: new Map(),
+            });
           }
-        } catch (error) {
-          console.error('Error fetching campaigns:', error);
-        }
+
+          const campaign = campaignIdToData.get(campaignId);
+          if (!campaign.assetGroups.has(assetGroupId)) {
+            campaign.assetGroups.set(assetGroupId, {
+              assetGroupId,
+              assetGroupName,
+            });
+          }
+        });
+
+        const campaigns = Array.from(campaignIdToData.values()).map(c => ({
+          campaignId: c.campaignId,
+          campaignName: c.campaignName,
+          assetGroups: Array.from(c.assetGroups.values()),
+        }));
+
+        setExistingCampaigns(campaigns);
+      } catch (error) {
+        console.error('Error fetching campaigns:', error);
       }
     };
 
@@ -49,33 +78,48 @@ export default function CreateAd() {
 
   useEffect(() => {
     const fetchAvailableAssets = async () => {
-      if (session?.user?.accountId) {
-        try {
-          const res = await fetch(`/api/assets?accountId=${session.user.accountId}`);
-          const data = await res.json();
-          if (data.success) {
-            const images = new Set();
-            const videos = new Set();
-            data.data.forEach(campaign => {
-              campaign.assetGroups.forEach(group => {
-                group.images?.forEach(image => {
-                  if (image['Image URL'] !== 'View Image') {
-                    images.add(JSON.stringify(image));
-                  }
-                });
-                group.videos?.forEach(video => {
-                  if (video['Video ID']) {
-                    videos.add(JSON.stringify(video));
-                  }
-                });
-              });
+      try {
+        const [imagesRes, videosRes] = await Promise.all([
+          fetch('/api/assets?all=true&asset_type=IMAGE'),
+          fetch('/api/assets?all=true&asset_type=YOUTUBE_VIDEO')
+        ]);
+        const [imagesData, videosData] = await Promise.all([
+          imagesRes.json(),
+          videosRes.json()
+        ]);
+
+        const uniqueImages = imagesData.reduce((acc, img) => {
+          const key = String(img.asset_id);
+          if (!acc.map.has(key)) {
+            acc.map.set(key, true);
+            acc.items.push({
+              'Asset ID': img.asset_id,
+              'Asset URL': img['Asset URL'] || img.asset_url,
+              'Image URL': img['Image URL'] || img.asset_url,
             });
-            setAvailableImages(Array.from(images).map(img => JSON.parse(img)));
-            setAvailableVideos(Array.from(videos).map(vid => JSON.parse(vid)));
           }
-        } catch (error) {
-          console.error('Error fetching assets:', error);
-        }
+          return acc;
+        }, { map: new Map(), items: [] }).items;
+
+        const uniqueVideos = videosData.reduce((acc, v) => {
+          const key = String(v.asset_id);
+          if (!acc.map.has(key)) {
+            acc.map.set(key, true);
+            const videoId = v['Video ID'] || (v['Asset URL']?.split('v=')[1]) || (v.asset_url?.split('v=')[1]);
+            acc.items.push({
+              'Asset ID': v.asset_id,
+              'Asset URL': v['Asset URL'] || v.asset_url,
+              'Video ID': videoId,
+              'Video Title': v['Video Title'] || v.text_content,
+            });
+          }
+          return acc;
+        }, { map: new Map(), items: [] }).items;
+
+        setAvailableImages(uniqueImages);
+        setAvailableVideos(uniqueVideos);
+      } catch (error) {
+        console.error('Error fetching assets:', error);
       }
     };
 
