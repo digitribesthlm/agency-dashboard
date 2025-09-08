@@ -16,6 +16,7 @@ export default function CreateAd() {
       assetGroupName: '',
       assetGroupStatus: 'ENABLED',
       headlines: [],
+      longHeadlines: [],
       descriptions: [],
       images: [],
       videos: [],
@@ -86,6 +87,17 @@ export default function CreateAd() {
           requests.push(postAsset({
             asset_type: 'TEXT',
             field_type: 'HEADLINE',
+            text_content: h['Text Content']
+          }));
+        });
+
+      // Long Headlines
+      formData.assetGroups[0].longHeadlines
+        .filter(h => h && h['Text Content'])
+        .forEach(h => {
+          requests.push(postAsset({
+            asset_type: 'TEXT',
+            field_type: 'LONG_HEADLINE',
             text_content: h['Text Content']
           }));
         });
@@ -260,6 +272,18 @@ export default function CreateAd() {
       newAssetGroups[0].descriptions[index] = {};
     }
     newAssetGroups[0].descriptions[index] = {
+      'Text Content': value,
+      'Asset ID': `temp_${Date.now()}`
+    };
+    setFormData({ ...formData, assetGroups: newAssetGroups });
+  };
+
+  const handleLongHeadlineChange = (index, value) => {
+    const newAssetGroups = [...formData.assetGroups];
+    if (!newAssetGroups[0].longHeadlines[index]) {
+      newAssetGroups[0].longHeadlines[index] = {};
+    }
+    newAssetGroups[0].longHeadlines[index] = {
       'Text Content': value,
       'Asset ID': `temp_${Date.now()}`
     };
@@ -471,7 +495,7 @@ export default function CreateAd() {
                 onClick={() => setStep(4)}
                 disabled={!formData.assetGroups[0].headlines.some(h => h?.['Text Content'])}
               >
-                Next: Descriptions
+                Next: Long Headlines
               </button>
             </div>
           </div>
@@ -480,19 +504,19 @@ export default function CreateAd() {
       case 4:
         return (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold">Descriptions</h2>
+            <h2 className="text-xl font-semibold">Long Headlines</h2>
             <div className="space-y-4">
-              {[0, 1, 2, 3].map((index) => (
+              {[0, 1, 2, 3, 4].map((index) => (
                 <div key={index} className="form-control">
                   <label className="label">
-                    <span className="label-text">Description {index + 1}</span>
+                    <span className="label-text">Long Headline {index + 1}</span>
                   </label>
-                  <textarea
-                    className="textarea textarea-bordered w-full"
-                    value={formData.assetGroups[0].descriptions[index]?.['Text Content'] || ''}
-                    onChange={(e) => handleDescriptionChange(index, e.target.value)}
-                    placeholder={`Enter description ${index + 1}`}
-                    rows="3"
+                  <input
+                    type="text"
+                    className="input input-bordered w-full"
+                    value={formData.assetGroups[0].longHeadlines[index]?.['Text Content'] || ''}
+                    onChange={(e) => handleLongHeadlineChange(index, e.target.value)}
+                    placeholder={`Enter long headline ${index + 1}`}
                   />
                 </div>
               ))}
@@ -507,9 +531,9 @@ export default function CreateAd() {
               <button 
                 className="btn btn-primary"
                 onClick={() => setStep(5)}
-                disabled={!formData.assetGroups[0].descriptions.some(d => d?.['Text Content'])}
+                disabled={!formData.assetGroups[0].longHeadlines.some(h => h?.['Text Content'])}
               >
-                Next: Images
+                Next: Descriptions
               </button>
             </div>
           </div>
@@ -967,10 +991,10 @@ export default function CreateAd() {
             <span>Campaign</span>
             <span>Asset Group</span>
             <span>Headlines</span>
+            <span>Long Headlines</span>
             <span>Descriptions</span>
             <span>Images</span>
             <span>Videos</span>
-            <span>URL</span>
             <span>Review</span>
           </div>
         </div>
