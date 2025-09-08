@@ -36,12 +36,23 @@ export default function CampaignAssetGroupsPage() {
         return;
       }
       
-      // Get campaign info from first asset
+      // Determine campaign info and status from all assets
       const firstAsset = assets[0];
+      const statusValues = assets
+        .map(a => a.campaign_status || a['Campaign Status'])
+        .filter(Boolean);
+      const statusSet = new Set(statusValues);
+      // Priority: REMOVED > PENDING > PAUSED > ENABLED > UNKNOWN
+      let derivedStatus = 'UNKNOWN';
+      if (statusSet.has('REMOVED')) derivedStatus = 'REMOVED';
+      else if (statusSet.has('PENDING')) derivedStatus = 'PENDING';
+      else if (statusSet.has('PAUSED')) derivedStatus = 'PAUSED';
+      else if (statusSet.has('ENABLED')) derivedStatus = 'ENABLED';
+
       setCampaign({
         campaignId: firstAsset.campaign_id,
         campaignName: firstAsset.campaign_name,
-        campaignStatus: firstAsset.campaign_status || firstAsset['Campaign Status'] || 'UNKNOWN'
+        campaignStatus: derivedStatus
       });
       
       // Group assets by asset group
