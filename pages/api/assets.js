@@ -89,6 +89,7 @@ async function handlePost(req, res, db, session) {
     landing_page_url,
     campaign_id,
     campaign_name,
+    campaign_status,
     asset_group_id,
     asset_group_name
   } = req.body;
@@ -104,6 +105,7 @@ async function handlePost(req, res, db, session) {
     account_id: "3729097555",
     campaign_id: campaign_id,
     campaign_name: campaign_name || 'Unknown Campaign',
+    campaign_status: campaign_status || 'ACTIVE',
     asset_group_id: asset_group_id,
     asset_group_name: asset_group_name || 'Unknown Asset Group',
     asset_id: asset_id,

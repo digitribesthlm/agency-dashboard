@@ -66,6 +66,7 @@ export default function CreateAd() {
           body: JSON.stringify({
             campaign_id: finalCampaignId,
             campaign_name: campaignName,
+            campaign_status: 'PENDING',
             asset_group_id: finalAssetGroupId,
             asset_group_name: assetGroupName,
             ...payload,
