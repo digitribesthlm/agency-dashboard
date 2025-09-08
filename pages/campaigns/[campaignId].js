@@ -40,7 +40,8 @@ export default function CampaignAssetGroupsPage() {
       const firstAsset = assets[0];
       setCampaign({
         campaignId: firstAsset.campaign_id,
-        campaignName: firstAsset.campaign_name
+        campaignName: firstAsset.campaign_name,
+        campaignStatus: firstAsset.campaign_status || firstAsset['Campaign Status'] || 'UNKNOWN'
       });
       
       // Group assets by asset group
@@ -117,6 +118,15 @@ export default function CampaignAssetGroupsPage() {
                   <p className="text-base-content/70 mt-1">Browse asset groups for this campaign and drill down to assets.</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <span className={`badge ${
+                    campaign?.campaignStatus === 'ENABLED' ? 'badge-success' :
+                    campaign?.campaignStatus === 'PAUSED' ? 'badge-warning' :
+                    campaign?.campaignStatus === 'REMOVED' ? 'badge-error' :
+                    campaign?.campaignStatus === 'PENDING' ? 'badge-warning' :
+                    'badge-neutral'
+                  }`}>
+                    {campaign?.campaignStatus || 'UNKNOWN'}
+                  </span>
                   <div className="badge badge-primary badge-outline">Groups: {assetGroups.length}</div>
                   <label className="label cursor-pointer gap-2">
                     <span className="label-text">Show Removed</span>
@@ -142,9 +152,17 @@ export default function CampaignAssetGroupsPage() {
             {assetGroups.map((assetGroup) => (
               <div key={assetGroup.assetGroupId} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
                 <div className="card-body">
-                  {/* Status Badge */}
+                  {/* Status Badge (campaign-level) */}
                   <div className="flex justify-between items-start mb-4">
-                    <span className="badge badge-success">ENABLED</span>
+                    <span className={`badge ${
+                      campaign?.campaignStatus === 'ENABLED' ? 'badge-success' :
+                      campaign?.campaignStatus === 'PAUSED' ? 'badge-warning' :
+                      campaign?.campaignStatus === 'REMOVED' ? 'badge-error' :
+                      campaign?.campaignStatus === 'PENDING' ? 'badge-warning' :
+                      'badge-neutral'
+                    }`}>
+                      {campaign?.campaignStatus || 'UNKNOWN'}
+                    </span>
                   </div>
                   
                   {/* Header with Logo and Title */}
