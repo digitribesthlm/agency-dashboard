@@ -542,6 +542,44 @@ export default function CreateAd() {
       case 5:
         return (
           <div className="space-y-6">
+            <h2 className="text-xl font-semibold">Descriptions</h2>
+            <div className="space-y-4">
+              {[0, 1, 2, 3].map((index) => (
+                <div key={index} className="form-control">
+                  <label className="label">
+                    <span className="label-text">Description {index + 1}</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered w-full"
+                    value={formData.assetGroups[0].descriptions[index]?.['Text Content'] || ''}
+                    onChange={(e) => handleDescriptionChange(index, e.target.value)}
+                    placeholder={`Enter description ${index + 1}`}
+                    rows="3"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between mt-6">
+              <button 
+                className="btn btn-outline"
+                onClick={() => setStep(4)}
+              >
+                Back
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={() => setStep(6)}
+                disabled={!formData.assetGroups[0].descriptions.some(d => d?.['Text Content'])}
+              >
+                Next: Images
+              </button>
+            </div>
+          </div>
+        );
+
+      case 6:
+        return (
+          <div className="space-y-6">
             <h2 className="text-xl font-semibold">Images</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -580,13 +618,13 @@ export default function CreateAd() {
             <div className="flex justify-between mt-6">
               <button 
                 className="btn btn-outline"
-                onClick={() => setStep(4)}
+                onClick={() => setStep(5)}
               >
                 Back
               </button>
               <button 
                 className="btn btn-primary"
-                onClick={() => setStep(6)}
+                onClick={() => setStep(7)}
               >
                 Next: Videos
               </button>
@@ -655,7 +693,7 @@ export default function CreateAd() {
           </div>
         );
 
-      case 6:
+      case 7:
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Videos</h2>
@@ -737,15 +775,15 @@ export default function CreateAd() {
             <div className="flex justify-between mt-6">
               <button 
                 className="btn btn-outline"
-                onClick={() => setStep(5)}
+                onClick={() => setStep(6)}
               >
                 Back
               </button>
               <button 
                 className="btn btn-primary"
-                onClick={() => setStep(7)}
+                onClick={() => setStep(8)}
               >
-                Next: Review
+                Next: URL
               </button>
             </div>
 
@@ -825,7 +863,7 @@ export default function CreateAd() {
           </div>
         );
 
-      case 7:
+      case 8:
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Landing Page URL</h2>
@@ -853,13 +891,13 @@ export default function CreateAd() {
             <div className="flex justify-between mt-6">
               <button 
                 className="btn btn-outline"
-                onClick={() => setStep(6)}
+                onClick={() => setStep(7)}
               >
                 Back
               </button>
               <button 
                 className="btn btn-primary"
-                onClick={() => setStep(8)}
+                onClick={() => setStep(9)}
                 disabled={!formData.assetGroups[0].finalUrl}
               >
                 Next: Review
@@ -868,7 +906,7 @@ export default function CreateAd() {
           </div>
         );
 
-      case 8:
+      case 9:
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Review & Submit</h2>
@@ -944,7 +982,7 @@ export default function CreateAd() {
             <div className="flex justify-between mt-6">
               <button 
                 className="btn btn-outline"
-                onClick={() => setStep(7)}
+                onClick={() => setStep(8)}
               >
                 Back
               </button>
@@ -971,7 +1009,7 @@ export default function CreateAd() {
       <div className="max-w-2xl mx-auto py-8 px-4">
         <div className="mb-8">
           <div className="flex items-center">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((stepNumber) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((stepNumber) => (
               <React.Fragment key={stepNumber}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   step === stepNumber ? 'bg-primary text-white' : 
@@ -979,7 +1017,7 @@ export default function CreateAd() {
                 }`}>
                   {stepNumber}
                 </div>
-                {stepNumber < 8 && (
+                {stepNumber < 9 && (
                   <div className={`h-1 w-10 ${
                     step > stepNumber ? 'bg-success' : 'bg-base-200'
                   }`} />
@@ -995,6 +1033,7 @@ export default function CreateAd() {
             <span>Descriptions</span>
             <span>Images</span>
             <span>Videos</span>
+            <span>URL</span>
             <span>Review</span>
           </div>
         </div>
