@@ -163,18 +163,7 @@ export default function CampaignAssetGroupsPage() {
             {assetGroups.map((assetGroup) => (
               <div key={assetGroup.assetGroupId} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
                 <div className="card-body">
-                  {/* Status Badge (campaign-level) */}
-                  <div className="flex justify-between items-start mb-4">
-                    <span className={`badge ${
-                      campaign?.campaignStatus === 'ENABLED' ? 'badge-success' :
-                      campaign?.campaignStatus === 'PAUSED' ? 'badge-warning' :
-                      campaign?.campaignStatus === 'REMOVED' ? 'badge-error' :
-                      campaign?.campaignStatus === 'PENDING' ? 'badge-warning' :
-                      'badge-neutral'
-                    }`}>
-                      {campaign?.campaignStatus || 'UNKNOWN'}
-                    </span>
-                  </div>
+                  {/* Remove campaign-wide status badge from individual cards */}
                   
                   {/* Header with Logo and Title */}
                   <div className="flex items-center gap-2 mb-4">
