@@ -1078,13 +1078,6 @@ export default function AssetGroupDetailPage() {
             </div>
           </div>
 
-          {/* Pending Headlines Section */}
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold mb-4">Pending Headlines</h3>
-          <div className="alert alert-warning">
-            <span>No pending headlines</span>
-          </div>
-          </div>
         </div>
       </div>
 
