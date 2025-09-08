@@ -590,6 +590,125 @@ export default function AssetGroupDetailPage() {
             </div>
           </div>
 
+          {/* Descriptions Section */}
+          <div className="mb-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Descriptions</h3>
+                    <p className="text-sm text-gray-500 mt-1">{assets.descriptions?.length || 0} assets • DESCRIPTION field type</p>
+                  </div>
+                  <button 
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      setShowDescriptionModal(true);
+                    }}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add Description
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {assets.descriptions?.map((asset) => (
+                    <div key={asset.asset_id} className={`group rounded-lg border hover:shadow-md transition-all duration-200 overflow-hidden ${
+                      asset.is_pending 
+                        ? 'bg-warning/5 border-warning/20 hover:border-warning/30' 
+                        : 'bg-base-100 border-base-300 hover:border-base-400'
+                    }`}>
+                      <div className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v1a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 7a2 2 0 00-2 2v3a2 2 0 002 2h7a1 1 0 100-2H4v-3h12v1a1 1 0 102 0v-1a2 2 0 00-2-2H4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <span className="text-sm font-medium text-gray-500">DESCRIPTION</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {asset.is_pending && (
+                              <div className="badge badge-warning badge-sm gap-1">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 001.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                </svg>
+                                PENDING
+                              </div>
+                            )}
+                            <div className="tooltip" data-tip={`Performance: ${asset['Performance Label'] || 'UNKNOWN'}`}>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                                asset['Performance Label'] === 'BEST' ? 'bg-success/20' :
+                                asset['Performance Label'] === 'GOOD' ? 'bg-info/20' :
+                                asset['Performance Label'] === 'LOW' ? 'bg-error/20' :
+                                asset['Performance Label'] === 'PENDING' ? 'bg-warning/20' :
+                                'bg-base-300'
+                              }`}>
+                                {asset['Performance Label'] === 'BEST' ? (
+                                  <svg className="w-4 h-4 text-success" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                ) : asset['Performance Label'] === 'GOOD' ? (
+                                  <svg className="w-4 h-4 text-info" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                ) : asset['Performance Label'] === 'LOW' ? (
+                                  <svg className="w-4 h-4 text-error" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                                  </svg>
+                                ) : asset['Performance Label'] === 'PENDING' ? (
+                                  <svg className="w-4 h-4 text-warning" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-4 h-4 text-base-content/40" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleRemoveAsset(asset.asset_id);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-50 rounded-lg"
+                            >
+                              <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
+                          <p className="text-lg font-medium text-gray-900 leading-relaxed">{asset['Text Content']}</p>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm text-gray-500">
+                          <div className="flex items-center gap-4">
+                            <span>ID: {asset.asset_id}</span>
+                            <span>{asset['Text Content']?.length || 0} chars</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-xs">Active</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Images Section */}
           <div className="mb-8">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -1096,6 +1215,40 @@ export default function AssetGroupDetailPage() {
                 onClick={() => {
                   setShowHeadlineModal(false);
                   setNewHeadline('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Description Modal */}
+      {showDescriptionModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Add Description</h3>
+            <textarea
+              className="textarea textarea-bordered w-full mb-4"
+              placeholder="Enter description text..."
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              rows={4}
+            />
+            <div className="modal-action">
+              <button
+                className="btn btn-primary"
+                onClick={handleAddDescription}
+                disabled={!newDescription.trim()}
+              >
+                Add Description
+              </button>
+              <button
+                className="btn"
+                onClick={() => {
+                  setShowDescriptionModal(false);
+                  setNewDescription('');
                 }}
               >
                 Cancel
