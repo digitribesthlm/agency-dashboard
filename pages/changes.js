@@ -157,7 +157,8 @@ export default function ChangesPage() {
       pause: 'badge-warning',
       resume: 'badge-success', 
       remove: 'badge-error',
-      add: 'badge-info'
+      add: 'badge-info',
+      status_change: 'badge-primary'
     };
     return badges[action] || 'badge-neutral';
   };
@@ -393,7 +394,7 @@ export default function ChangesPage() {
                         </td>
                         <td className="text-center">
                           <div className={`badge badge-sm ${getActionBadge(change.action)}`}>
-                            {change.action.toUpperCase()}
+                            {change.action === 'STATUS_CHANGE' ? 'STATUS CHANGE' : change.action.toUpperCase()}
                           </div>
                         </td>
                         <td className="text-left">

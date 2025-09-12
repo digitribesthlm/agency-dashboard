@@ -65,6 +65,7 @@ export default function CampaignAssetGroupsPage() {
           assetGroupMap.set(assetGroupId, {
             assetGroupId: assetGroupId,
             assetGroupName: asset.asset_group_name,
+            assetGroupStatus: asset.asset_group_status || 'PAUSED', // Default to PAUSED if not specified
             assets: [],
             totalAssets: 0,
             images: 0,
@@ -93,6 +94,38 @@ export default function CampaignAssetGroupsPage() {
       console.error('Error fetching asset groups:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (assetGroupId, newStatus) => {
+    try {
+      const response = await fetch('/api/assets/status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          assetGroupId: assetGroupId,
+          campaignId: campaignId,
+          newStatus: newStatus
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setAssetGroups(prevGroups => 
+          prevGroups.map(group => 
+            group.assetGroupId === assetGroupId 
+              ? { ...group, assetGroupStatus: newStatus }
+              : group
+          )
+        );
+        console.log(`Asset group ${assetGroupId} status updated to ${newStatus}`);
+      } else {
+        console.error('Failed to update asset group status');
+      }
+    } catch (error) {
+      console.error('Error updating asset group status:', error);
     }
   };
 
@@ -163,7 +196,34 @@ export default function CampaignAssetGroupsPage() {
             {assetGroups.map((assetGroup) => (
               <div key={assetGroup.assetGroupId} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
                 <div className="card-body">
-                  {/* Remove campaign-wide status badge from individual cards */}
+                  {/* Asset Group Status Badge and Toggle */}
+                  <div className="flex justify-between items-center mb-2">
+                    <span className={`badge ${
+                      assetGroup.assetGroupStatus === 'ENABLED' 
+                        ? 'badge-success' 
+                        : assetGroup.assetGroupStatus === 'PAUSED' 
+                        ? 'badge-warning' 
+                        : assetGroup.assetGroupStatus === 'PENDING'
+                        ? 'badge-info'
+                        : 'badge-error'
+                    }`}>
+                      {assetGroup.assetGroupStatus}
+                    </span>
+                    
+                    {/* Status Toggle */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Status:</span>
+                      <select 
+                        className="select select-xs select-bordered"
+                        value={assetGroup.assetGroupStatus}
+                        onChange={(e) => handleStatusChange(assetGroup.assetGroupId, e.target.value)}
+                      >
+                        <option value="ENABLED">Enabled</option>
+                        <option value="PAUSED">Paused</option>
+                        <option value="REMOVED">Removed</option>
+                      </select>
+                    </div>
+                  </div>
                   
                   {/* Header with Logo and Title */}
                   <div className="flex items-center gap-2 mb-4">
