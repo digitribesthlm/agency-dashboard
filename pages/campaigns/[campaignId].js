@@ -168,9 +168,9 @@ export default function CampaignAssetGroupsPage() {
                   {/* Header with Logo and Title */}
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-8 h-8 bg-purple-500 rounded flex items-center justify-center text-white font-bold text-sm">
-                      Q
+                      {assetGroup.assetGroupName.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm text-gray-600">Qlik Sense - Product Tour</span>
+                    <span className="text-sm text-gray-600">{assetGroup.assetGroupName}</span>
                   </div>
                   
                   {/* Video Thumbnail */}
