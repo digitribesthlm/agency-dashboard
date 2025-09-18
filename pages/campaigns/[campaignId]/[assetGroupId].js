@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import Layout from '../../../components/Layout';
+import { event as gaEvent } from '../../../lib/gtag';
 
 export default function AssetGroupDetailPage() {
   const router = useRouter();
@@ -106,6 +107,15 @@ export default function AssetGroupDetailPage() {
       });
 
       if (response.ok) {
+        try {
+          const label = assetData.text_content || assetData.landing_page_url || assetData.asset_url || '';
+          gaEvent({
+            action: 'asset_add',
+            category: assetData.field_type || assetData.asset_type || 'ASSET',
+            label,
+            value: undefined
+          });
+        } catch (e) {}
         fetchAssets(); // Refresh assets
         return true;
       }
@@ -128,6 +138,14 @@ export default function AssetGroupDetailPage() {
       console.log('Delete response data:', responseData);
 
       if (response.ok) {
+        try {
+          gaEvent({
+            action: 'asset_delete',
+            category: 'ASSET',
+            label: String(assetId),
+            value: undefined
+          });
+        } catch (e) {}
         console.log('Delete successful, refreshing assets...');
         // Small delay to ensure database update completes
         setTimeout(() => {
